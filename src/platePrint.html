@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Plate Printing</title>
+    <link href="main.css" rel="stylesheet"/>
+</head>
+<body class="printer">
+    <div id="marque"></div>
+    <div id="platePrintArea-printer">
+        <div class="reg-letters" id="plateRender-printer"></div>
+        <div class="slogan" id="sloganMessage"></div>
+        <div class="slogan" id="sloganPostcode"></div>
+        <div class="slogan" id="bsau"></div>
+    </div>
+
+    <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+    <script>if (window.module) module = window.module;</script>
+
+    <script>
+        
+        const ipcRenderer = require("electron").ipcRenderer;
+        const render = function(content) {
+            return new Promise(function(resolve, reject) {
+                const platePrinterArea = document.getElementById('plateRender-printer');
+                const plateSloganMessage = document.getElementById('sloganMessage');
+                const plateSloganPostcode = document.getElementById('sloganPostcode');
+                const plateBSAU = document.getElementById('bsau');
+                const plateMarque = document.getElementById('marque');
+
+                const PLATE_HEIGHT = 111;
+                const PLATE_WIDTH = 521;
+                const EU_LOGO_WIDTH = 45;
+
+                platePrinterArea.innerHTML = content.plateText;
+                plateSloganMessage.innerHTML = content.sloganMessage;
+                plateSloganPostcode.innerHTML = content.sloganPostCode;
+                plateBSAU.innerHTML = content.plateBSAU;
+
+                // let do the setup options
+                //if (content.mirror) {
+                //    $('#platePrintArea-printer').addClass('mirror-text');
+                //}
+                if (content.printMarque) {
+                    let marqueDisplayVal = "block";
+                    let marqueFloatVal = "right";
+                    let marqueBlockWidth = 0;
+                    let marqueBlockWidthCSS = '';
+
+                    displayVal = "block";
+                    floatVal = "right";
+                    marqueBlockWidth = PLATE_WIDTH - EU_LOGO_WIDTH;
+                    if (content.printBorder) {
+                        let reduceBy = (parseInt(content.printBorderMargin) * 2) - parseInt(content.printBorderWidth);
+                        marqueBlockWidth -= reduceBy;
+                    }
+                    marqueBlockWidthCSS = marqueBlockWidth.toString() + "mm";
+                    
+                    platePrinterArea.style.float = marqueFloatVal;
+                    platePrinterArea.style.width = marqueBlockWidthCSS;
+                    plateMarque.style.display = marqueDisplayVal;
+                }
+                resolve();
+            });
+        };
+        
+        ipcRenderer.on("preparePrint", function(event, content) { 
+            render(content).then(function() {
+                setTimeout(function() {
+                    ipcRenderer.send("printRenderedHandler");
+                }, 1000);
+            });
+        });
+
+        ipcRenderer.on("printPlate", function(event, content) {
+            ipcRenderer.send("sendPlateToPrinterHandler");
+        });
+
+    </script>
+</body>
+</html>

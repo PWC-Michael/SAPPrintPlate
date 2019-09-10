@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Plate Printing</title>
+    <link href="barcode.css" rel="stylesheet"/>
+</head>
+<body class="barcode-printer">
+    <div id="barcodePrintArea-printer">
+        <svg id="barcode" style="max-width: 100%;"></svg>
+    </div>
+
+    <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+    <script>if (window.module) module = window.module;</script>
+
+    <script src="assets/js/jsbarcode.all.min.js"></script>
+
+    <script>
+        
+        const ipcRenderer = require("electron").ipcRenderer;
+        const render = function(content) {
+            return new Promise(function(resolve, reject) {
+                JsBarcode("#barcode", content.barcodeValue, {
+                    format: "CODE39",
+                    height: 45,
+                    font: "monospace",
+                    fontSize: 18,
+                    width: 1,
+                    margin: 0,
+                    displayValue: true
+                });
+                resolve();
+            });
+        };
+        
+        ipcRenderer.on("prepareBarcodePrint", function(event, content) { 
+            render(content).then(function() {
+                setTimeout(function() {
+                    ipcRenderer.send("barcodePrintRenderedHandler");
+                }, 1000);
+                
+            });
+        });
+
+        ipcRenderer.on("barcodePrint", function(event, content) {
+            ipcRenderer.send("sendBarcodeToPrinterHandler");
+        });
+
+    </script>
+</body>
+</html>
