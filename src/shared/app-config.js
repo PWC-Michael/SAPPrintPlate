@@ -1,6 +1,6 @@
 export const appConfig = {
     __api_dev: "http://sap-api.local/api/rest/",
-    __api_live: "http://sap-dev.pwcapi.com/api/rest/",
+    __api_live: "https://printplate-api.herokuapp.com/api/rest",
     env: "dev",
     PROOF_OF_ID_CODE: 'PID',
     PROOF_OF_ENT_CODE: 'PENT',

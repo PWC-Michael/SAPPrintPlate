@@ -2,6 +2,11 @@
   <div class="app flex-row align-items-center">
     <div class="container">
       <b-row class="justify-content-center">
+        <b-col md="4">
+          <img class="p-4" src="img/sap-logo.jpg" style="width: 100%;" alt="SAP Logo">
+        </b-col>
+      </b-row>
+      <b-row class="justify-content-center">
         <b-col md="8">
           <b-card-group>
             <b-card no-body class="p-4">
@@ -15,11 +20,14 @@
                   </b-input-group>
                   <b-input-group class="mb-4">
                     <b-input-group-prepend><b-input-group-text><i class="icon-lock"></i></b-input-group-text></b-input-group-prepend>
-                    <b-form-input v-model="password" type="password" class="form-control" placeholder="Password" autocomplete="current-password" required />
+                    <b-form-input v-model="password" type="password" class="form-control" placeholder="Password" autocomplete="current-password" @keyup.enter.native="login" required />
                   </b-input-group>
                   <b-row>
                     <b-col cols="6">
-                      <b-button variant="primary" class="px-4" @click="login">Login</b-button>
+                      <b-button variant="primary" class="px-4" @click="login" :disabled="isLoggingIn">
+                        <span v-if="isLoggingIn"><i class="fa fa-spin fa-spinner"></i>&nbsp; Logging in...</span>
+                        <span v-if="!isLoggingIn">Login</span>
+                      </b-button>
                     </b-col>
                     <b-col cols="6" class="text-right">
                       <b-button variant="link" class="px-0">Forgot password?</b-button>
@@ -28,7 +36,7 @@
                 </b-form>
               </b-card-body>
             </b-card>
-            <b-card no-body class="text-white bg-primary py-5 d-md-down-none" style="width:44%">
+            <b-card no-body class="bg-SAP py-5 d-md-down-none" style="width:44%">
               <b-card-body class="text-center">
                 <div>
                   <h2>No account?</h2>
@@ -53,7 +61,8 @@ export default {
   data() {
     return {
       username: "",
-      password: ""
+      password: "",
+      isLoggingIn: false
     }
   },
   created() {
@@ -63,6 +72,7 @@ export default {
   methods : {
     login(e) {
       e.preventDefault();
+      this.$data.isLoggingIn = true;
       if (this.password.length > 0) {
         const body = {
           username: this.username,
@@ -87,12 +97,22 @@ export default {
             localStorage.setItem('user', JSON.stringify(userObj));
             storeController.setUserAuthToken(response.data.token);
             this.$router.push('/');
+            this.$data.isLoggingIn = false;
           })
           .catch ((err) => {
             console.error(err);
+            this.$data.isLoggingIn = false;
           })
       }
     }
   }
 }
 </script>
+
+<style scoped>
+  .card.bg-SAP {
+    background-color: rgb(247, 209, 74);
+    color: #333333;
+    border-color: rgb(179, 144, 21);
+  }
+</style>

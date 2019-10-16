@@ -18,7 +18,7 @@ import { appConfig } from './shared/app-config';
 Vue.use(BootstrapVue);
 
 // set up the http base object
-appConfig.setEnvironment('dev');
+appConfig.setEnvironment('live');
 
 const httpbase = axios.create({
   baseURL: appConfig.getAPIBase()

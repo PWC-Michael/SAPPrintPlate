@@ -1,6 +1,6 @@
 {
   "name": "sap-plate-printing",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "The number plate printing admin web app",
   "author": "Planet Wide City",
   "scripts": {
@@ -28,6 +28,7 @@
     "core-js": "^2.6.5",
     "css-vars-ponyfill": "^1.17.2",
     "datatables.net": "^1.10.19",
+    "electron-log": "^3.0.8",
     "flag-icon-css": "^3.3.0",
     "font-awesome": "^4.7.0",
     "perfect-scrollbar": "^1.4.0",

@@ -5,7 +5,40 @@
 <script>
 export default {
   name: 'app',
+  data: function() {
+    return {
+      interval: null
+    }
+  },
   components: {
+  },
+  mounted: function() {
+    this.inactivityTime();
+  },
+  methods: {
+    inactivityTime() {
+      const callReset = () => {
+        this.resetTimer();
+      };
+
+      document.addEventListener('click', function(e) {
+        callReset();
+      });
+      document.addEventListener('keypress', function(e) {
+        callReset();
+      });
+      
+    },
+    resetTimer() {
+      clearTimeout(this.$data.interval);
+      console.log("Timer reset..");
+      this.$data.interval = setTimeout(this.countDown, 120000);
+    },
+    countDown() {
+      clearTimeout(this.$data.interval);
+      this.$router.push('/pages/login');
+      this.resetTimer();
+    }
   }
 }
 </script>

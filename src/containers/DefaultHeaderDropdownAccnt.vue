@@ -11,7 +11,7 @@
       <b-dropdown-item><i class="fa fa-user" /> Profile</b-dropdown-item>
       <b-dropdown-item><i class="fa fa-shield" /> Lock Account</b-dropdown-item>
       <b-dropdown-item><i class="fa fa-lock" />
-        <b-link :to="'login'">
+        <b-link :to="'/pages/login'">
           Logout
         </b-link>
       </b-dropdown-item>

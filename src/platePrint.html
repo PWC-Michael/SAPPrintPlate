@@ -7,8 +7,10 @@
 <body class="printer">
     <div id="marque"></div>
     <div id="platePrintArea-printer">
-        <div class="reg-letters" id="plateRender-printer"></div>
-        <div class="slogan" id="sloganMessage"></div>
+        <div class="reg-letters" id="plateRender">
+            <span id="actual-letters"></span>
+        </div>
+        <div class="slogan" id="sloganMessage" style="font-family: Arial, Helvetica, sans-serif; font-weight: bold;"></div>
         <div class="slogan" id="sloganPostcode"></div>
         <div class="slogan" id="bsau"></div>
     </div>
@@ -21,26 +23,83 @@
         const ipcRenderer = require("electron").ipcRenderer;
         const render = function(content) {
             return new Promise(function(resolve, reject) {
-                const platePrinterArea = document.getElementById('plateRender-printer');
+                const platePrinterAreaParent = document.getElementById('platePrintArea-printer');
+                const platePrinterArea = document.getElementById('plateRender');
                 const plateSloganMessage = document.getElementById('sloganMessage');
                 const plateSloganPostcode = document.getElementById('sloganPostcode');
                 const plateBSAU = document.getElementById('bsau');
+                const plateActualLetters = document.getElementById('actual-letters');
                 const plateMarque = document.getElementById('marque');
 
-                const PLATE_HEIGHT = 111;
-                const PLATE_WIDTH = 521;
+                const PLATE_HEIGHT = content.plateHeight;
+                const PLATE_WIDTH = content.plateWidth;
                 const EU_LOGO_WIDTH = 45;
 
-                platePrinterArea.innerHTML = content.plateText;
+
+                plateActualLetters.innerHTML = content.plateText;
                 plateSloganMessage.innerHTML = content.sloganMessage;
-                plateSloganPostcode.innerHTML = content.sloganPostCode;
+                plateSloganMessage.style.fontSize = content.sloganMessageFontSize + "mm";
+                plateSloganPostcode.innerHTML = content.postCode;
                 plateBSAU.innerHTML = content.plateBSAU;
+                plateSloganMessage.style.marginTop = content.sloganMessageRaise + "mm";
+
+                //platePrinterAreaParent.style.width = "100%"
+                //platePrinterAreaParent.style.height ="100%";
+                //platePrinterAreaParent.style.borderWidth = '1mm';
+                //platePrinterAreaParent.style.borderColor = '#000000';
+                //platePrinterAreaParent.style.borderStyle = 'solid';
+                
+                //platePrinterArea.style.display = 'flex';
+                //platePrinterArea.style.alignItems = 'center';
+                //platePrinterArea.style.justifyContent = 'center';
+                //platePrinterArea.style.marginTop = "-" + content.plateRaise + "mm";
+
+                //console.log(content.printBorder);
+                
 
                 // let do the setup options
                 //if (content.mirror) {
                 //    $('#platePrintArea-printer').addClass('mirror-text');
                 //}
-                if (content.printMarque) {
+                
+                if (content.printBorder == '1') {
+                    let borderMargin = content.printBorderMargin;
+                    let borderWidth = content.printBorderWidth;
+                    let borderMarginCSSVal = "0mm";
+                    let borderWidthCSSVal = "0mm";
+                    let platePrintAreaWidth = 0;
+                    let platePrintAreaHeight = 0;
+                    if (borderWidth > 0) {
+                        borderWidthCSSVal = borderWidth.toString() + 'mm'; 
+                    }
+                    if (borderMargin > 0) {
+                        borderMarginCSSVal = borderMargin.toString() + 'mm'; 
+                        platePrintAreaWidth = PLATE_WIDTH - (borderMargin * 2) - 4;
+                        platePrintAreaHeight = PLATE_HEIGHT - (borderMargin * 2) - 4;
+                    }
+                    platePrinterAreaParent.style.borderWidth = borderWidthCSSVal;
+                    platePrinterAreaParent.style.borderColor = '#000000';
+                    platePrinterAreaParent.style.borderStyle = 'solid';
+                    platePrinterAreaParent.style.borderRadius = '30px';
+                    platePrinterAreaParent.style.width = platePrintAreaWidth + "mm";
+                    platePrinterAreaParent.style.height = platePrintAreaHeight + 'mm';
+                    platePrinterAreaParent.style.padding = borderMarginCSSVal;
+                    platePrinterArea.style.marginTop = "1mm";
+                    platePrinterArea.style.marginLeft = '-10mm';
+
+                }
+                else {
+                    let plateRaiseVal = 0;
+                    if (content.plateRaise < 0) {
+                        plateRaiseVal = content.plateRaise - 6 + "mm";
+                    }
+                    else {
+
+                    }
+                    platePrinterArea.style.marginTop = "1mm";
+                    platePrinterArea.style.marginLeft = '-6mm';
+                }
+                if (content.printMarque == '1') {
                     let marqueDisplayVal = "block";
                     let marqueFloatVal = "right";
                     let marqueBlockWidth = 0;
@@ -55,10 +114,12 @@
                     }
                     marqueBlockWidthCSS = marqueBlockWidth.toString() + "mm";
                     
-                    platePrinterArea.style.float = marqueFloatVal;
+                    //platePrinterArea.style.float = marqueFloatVal;
+                    platePrinterArea.style.marginLeft = '43mm';
                     platePrinterArea.style.width = marqueBlockWidthCSS;
                     plateMarque.style.display = marqueDisplayVal;
                 }
+                
                 resolve();
             });
         };

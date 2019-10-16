@@ -2,27 +2,57 @@
   <div class="animated fadeIn">
     <div class="viewMode">
       <b-row v-if="!isFromTC">
-        <b-col sm="8">
+        <b-col sm="5">
           <p class="toolbar">
+            <b-button v-on:click="clearAllFields" variant="secondary">
+              <i class="fa fa-file-o"></i>&nbsp;New
+            </b-button>
             <b-button v-on:click="toggleLoadTemplateModal" variant="secondary">
               <i class="fa fa-folder-open-o"></i>&nbsp;Load Template
             </b-button>
             <b-button v-on:click="toggleSaveTemplateModal" variant="secondary">
               <i class="fa fa-floppy-o"></i>&nbsp;Save Template
             </b-button>
-            <b-button v-on:click="toggleAuditEntryModal" variant="secondary">
-              <i class="fa fa-clone"></i>&nbsp;Audit
+            <b-button v-on:click="toggleAuditEntryModal" variant="warning">
+              <i class="fa fa-clone"></i>&nbsp;Retail Customers
             </b-button>
-            <b-button v-on:click="printPlate" variant="secondary">
-              <i class="fa fa-file-o"></i>&nbsp;New
-            </b-button>
-            <b-button v-on:click="toggleTemplateSettingsModal" variant="secondary">
+          </p>
+        </b-col>
+        <b-col sm="3">
+          <p class="toolbar">
+            <b-button
+              v-if="isSettingsAvailable"
+              v-on:click="toggleTemplateSettingsModal"
+              variant="secondary"
+              style="display: none;"
+            >
               <i class="fa fa-cog"></i>&nbsp;Settings
+            </b-button>
+            <b-button
+              v-if="plateProperties.isBarcodePrint == 1"
+              v-on:click="printBarcode"
+              variant="secondary"
+              style="display: none;"
+            >
+              <i class="fa fa-print"></i>&nbsp;Reprint Barcode
             </b-button>
           </p>
         </b-col>
         <b-col class="toolbar-template-name" sm="4">
-          <label>Template Name: <span class="template-name" v-text="currentTemplateName"></span></label>
+          <p class="toolbar">
+            <b-button v-on:click="printPlate" variant="success" :disabled="!canPlateBePrinted">
+              <span v-if="!printJobRunning">
+                <i class="fa fa-print"></i>&nbsp;Print Plate
+              </span>
+              <span v-if="printJobRunning">
+                <i class="fa fa-spin fa-spinner"></i>&nbsp;Printing plate...
+              </span>
+            </b-button>
+            <label>
+              Template Name:
+              <span class="template-name" v-text="currentTemplateName"></span>
+            </label>
+          </p>
         </b-col>
       </b-row>
       <b-row>
@@ -33,16 +63,27 @@
             </div>
             <div class="form-container">
               <b-row>
-                <b-col sm="8">
+                <b-col sm="6">
                   <b-form-group>
                     <label for="plateTextInput">Registration Number</label>
-                    <b-form-input v-model="plateProperties.plateTextInput" type="text" class="uppercase" id="plateTextInput"></b-form-input>
+                    <b-form-input
+                      v-model="plateProperties.plateTextInput"
+                      type="text"
+                      class="uppercase"
+                      id="plateTextInput"
+                    ></b-form-input>
                   </b-form-group>
                 </b-col>
-                <b-col sm="4">
+                <b-col sm="6">
                   <b-form-group>
-                    <label for="plateRaiseInput">Raise</label>
-                    <b-form-input v-model="plateProperties.plateRaiseInput" type="number" id="plateRaiseInput" value="0" min="0"></b-form-input>
+                    <label for="plateWIPInput">WIP/Job No:</label>
+                    <b-form-input
+                      v-model="plateProperties.plateWIPInput"
+                      type="number"
+                      id="plateWIPInput"
+                      value="0"
+                      min="0"
+                    ></b-form-input>
                   </b-form-group>
                 </b-col>
               </b-row>
@@ -51,10 +92,20 @@
                   <b-form-group>
                     <label for="barcodeValue">Stock Number</label>
                     <b-input-group>
-                      <b-form-input v-model="plateProperties.barcodeValue" type="text" id="barcodeValue"></b-form-input>
+                      <b-form-input
+                        v-model="plateProperties.barcodeValue"
+                        type="text"
+                        id="barcodeValue"
+                      ></b-form-input>
                       <!-- Attach Right button -->
                       <b-input-group-append>
-                        <b-button v-on:click="toggleBarcodePreviewModal" variant="primary" :disabled="!isBarcodeAvailable"><i class="fa fa-barcode"></i>&nbsp;Preview</b-button>
+                        <b-button
+                          v-on:click="toggleBarcodePreviewModal"
+                          variant="primary"
+                          :disabled="!isBarcodeAvailable"
+                        >
+                          <i class="fa fa-barcode"></i>&nbsp;Preview
+                        </b-button>
                       </b-input-group-append>
                     </b-input-group>
                   </b-form-group>
@@ -70,28 +121,52 @@
             </div>
             <div class="form-container">
               <b-row>
-                <b-col sm="6">
+                <b-col sm="5">
                   <b-form-group>
                     <label for="plateMessageInput">Slogan</label>
                     <b-input-group>
-                      <b-form-input v-model="plateProperties.plateMessageInput" type="text" id="plateMessageInput"></b-form-input>
+                      <b-form-input
+                        v-model="plateProperties.plateMessageInput"
+                        type="text"
+                        id="plateMessageInput"
+                      ></b-form-input>
                       <!-- Attach Right button -->
                       <b-input-group-append>
-                        <b-button v-on:click="toggleSloganFontSettingsModal" variant="primary"><i class="fa fa-font"></i>&nbsp;Font</b-button>
+                        <b-button v-on:click="toggleSloganFontSettingsModal" variant="primary">
+                          <i class="fa fa-font"></i>&nbsp;Font
+                        </b-button>
                       </b-input-group-append>
                     </b-input-group>
                   </b-form-group>
                 </b-col>
-                <b-col sm="6">
+                <b-col sm="5">
                   <b-form-group>
                     <label for="platePostCodeInput">Post Code</label>
                     <b-input-group>
-                      <b-form-input v-model="plateProperties.platePostCodeInput" type="text" id="platePostCodeInput" class="uppercase"></b-form-input>
+                      <b-form-input
+                        v-model="plateProperties.platePostCodeInput"
+                        type="text"
+                        id="platePostCodeInput"
+                        class="uppercase"
+                      ></b-form-input>
                       <!-- Attach Right button -->
                       <b-input-group-append>
-                        <b-button v-on:click="togglePostCodeFontSettingsModal" variant="primary"><i class="fa fa-font"></i>&nbsp;Font</b-button>
+                        <b-button v-on:click="togglePostCodeFontSettingsModal" variant="primary">
+                          <i class="fa fa-font"></i>&nbsp;Font
+                        </b-button>
                       </b-input-group-append>
                     </b-input-group>
+                  </b-form-group>
+                </b-col>
+                <b-col sm="2">
+                  <b-form-group>
+                    <label for="platePostCodePosition">Position</label>
+                    <b-form-select
+                      id="platePostCodePosition"
+                      v-model="plateProperties.platePostCodePosition"
+                      :plain="true"
+                      :options="platePostCodePostions"
+                    ></b-form-select>
                   </b-form-group>
                 </b-col>
               </b-row>
@@ -101,31 +176,50 @@
                     <label for="plateBorderColour">Plate Artwork</label>
                     <vue-base64-file-upload
                       class="v1"
-                      accept="image/png,image/jpeg"
+                      accept="image/png, image/jpeg"
                       image-class="image-upload-hidden"
                       input-class="form-control"
                       :max-size="2"
                       @size-exceeded="onArtworkSizeExceeded"
                       @file="onArtworkFile"
-                      @load="onArtworkLoad" />
+                      @load="onArtworkLoad"
+                    />
                   </b-form-group>
                 </b-col>
                 <b-col sm="2">
                   <b-form-group>
                     <label for="plateArtworkSize">Size (mm)</label>
-                    <b-form-input v-model="plateProperties.plateArtworkSize" type="number" id="plateArtworkSize" value="0" min="0"></b-form-input>
+                    <b-form-input
+                      v-model="plateProperties.plateArtworkSize"
+                      type="number"
+                      id="plateArtworkSize"
+                      value="0"
+                      min="0"
+                    ></b-form-input>
                   </b-form-group>
                 </b-col>
                 <b-col sm="2">
                   <b-form-group>
                     <label for="plateArtworkRaise">Raise</label>
-                    <b-form-input v-model="plateProperties.plateArtworkRaise" type="number" id="plateArtworkRaise" value="0" min="0"></b-form-input>
+                    <b-form-input
+                      v-model="plateProperties.plateArtworkRaise"
+                      type="number"
+                      id="plateArtworkRaise"
+                      value="0"
+                      min="0"
+                    ></b-form-input>
                   </b-form-group>
                 </b-col>
                 <b-col sm="2">
                   <b-form-group>
                     <label for="plateArtworkOffset">Offset</label>
-                    <b-form-input v-model="plateProperties.plateArtworkOffset" type="number" id="plateArtworkOffset" value="0" min="0"></b-form-input>
+                    <b-form-input
+                      v-model="plateProperties.plateArtworkOffset"
+                      type="number"
+                      id="plateArtworkOffset"
+                      value="0"
+                      min="0"
+                    ></b-form-input>
                   </b-form-group>
                 </b-col>
               </b-row>
@@ -144,10 +238,12 @@
                 <b-col sm="12">
                   <b-form-group>
                     <label for="plateSize">Sizes</label>
-                    <b-form-select id="plateSize" v-model="plateProperties.plateSelectedSize"
-                        :plain="true"
-                        :options="plateSizesSelect">
-                    </b-form-select>
+                    <b-form-select
+                      id="plateSize"
+                      v-model="plateProperties.plateSelectedSize"
+                      :plain="true"
+                      :options="plateSizesSelect"
+                    ></b-form-select>
                   </b-form-group>
                 </b-col>
               </b-row>
@@ -163,36 +259,96 @@
               <b-row>
                 <b-col sm="1">
                   <b-form-group>
-                    <label for="isPrintBorder">Border</label><br/>
-                    <c-switch class="mx-1" id="isPrintBorder"  name="isPrintBorder" color="primary" v-model="plateProperties.isPrintBorder" label value="1" uncheckedValue="0" dataOn="yes" dataOff="no" />
+                    <label for="isPrintBorder">Border</label>
+                    <br />
+                    <c-switch
+                      :disabled='true'
+                      class="mx-1"
+                      id="isPrintBorder"
+                      name="isPrintBorder"
+                      color="primary"
+                      v-model="plateProperties.isPrintBorder"
+                      label
+                      value="1"
+                      uncheckedValue="0"
+                      data-on="yes"
+                      data-off="no"
+                    />
                   </b-form-group>
                 </b-col>
                 <b-col sm="2">
                   <b-form-group>
                     <label for="plateBorderMargin">Margin</label>
-                    <b-form-input v-model="plateProperties.plateBorderMargin" type="number" id="plateBorderMargin" value="7" min="1"></b-form-input>
+                    <b-form-input
+                      :disabled='true'
+                      v-model="plateProperties.plateBorderMargin"
+                      type="number"
+                      id="plateBorderMargin"
+                      value="7"
+                      min="1"
+                    ></b-form-input>
                   </b-form-group>
                 </b-col>
                 <b-col sm="2">
                   <label for="plateBorderWidth">Width</label>
-                  <b-form-input v-model="plateProperties.plateBorderWidth" type="number" class="form-control" id="plateBorderWidth" value="2" min="1" ></b-form-input>
+                  <b-form-input
+                    :disabled='true'
+                    v-model="plateProperties.plateBorderWidth"
+                    type="number"
+                    class="form-control"
+                    id="plateBorderWidth"
+                    value="2"
+                    min="1"
+                  ></b-form-input>
                 </b-col>
                 <b-col sm="1">
                   <b-form-group>
-                    <label for="isPrintMarque">GB Logo</label><br/>
-                    <c-switch class="mx-1" id="isPrintMarque"  name="isPrintMarque" color="primary" v-model="plateProperties.isPrintMarque" label value="1" uncheckedValue="0" dataOn="yes" dataOff="no" />
+                    <label for="isPrintMarque">GB Logo</label>
+                    <br />
+                    <c-switch
+                      class="mx-1"
+                      id="isPrintMarque"
+                      name="isPrintMarque"
+                      color="primary"
+                      v-model="plateProperties.isPrintMarque"
+                      label
+                      value="1"
+                      uncheckedValue="0"
+                      data-on="yes"
+                      data-off="no"
+                    />
                   </b-form-group>
                 </b-col>
                 <b-col sm="3">
                   <b-form-group>
                     <label for="plateMarqueWidth">Logo Width</label>
-                    <b-form-input v-model="plateProperties.plateMarqueWidth" type="text" id="plateMarqueWidth" value="0" min="0"></b-form-input>
+                    <b-form-input
+                      :disabled='true'
+                      v-model="plateProperties.plateMarqueWidth"
+                      type="text"
+                      id="plateMarqueWidth"
+                      value="0"
+                      min="0"
+                    ></b-form-input>
                   </b-form-group>
                 </b-col>
                 <b-col sm="1">
                   <b-form-group>
-                    <label for="isPrintBSAU">BSAU</label><br/>
-                    <c-switch class="mx-1" id="isPrintBSAU"  name="isPrintBSAU" color="primary" v-model="plateProperties.isPrintBSAU" label value="1" uncheckedValue="0" dataOn="yes" dataOff="no" />
+                    <label for="isPrintBSAU">BSAU Text</label>
+                    <br />
+                    <c-switch
+                      :disabled='true'
+                      class="mx-1"
+                      id="isPrintBSAU"
+                      name="isPrintBSAU"
+                      color="primary"
+                      v-model="plateProperties.isPrintBSAU"
+                      label
+                      value="1"
+                      uncheckedValue="0"
+                      data-on="yes"
+                      data-off="no"
+                    />
                   </b-form-group>
                 </b-col>
               </b-row>
@@ -200,69 +356,127 @@
           </b-card>
         </b-col>
       </b-row>
-      <b-row v-if="!isFromTC">
-        <b-col sm="12">
-          <p class="button-area">
-            <b-button v-on:click="printPlate" variant="primary">
-              <i class="fa fa-print"></i>&nbsp;Print Plate
-            </b-button>
-            <b-button v-on:click="printBarcode" variant="primary">
-              <i class="fa fa-print"></i>&nbsp;Print Barcode
-            </b-button>
-          </p>
-        </b-col>
-      </b-row>
       <b-row v-if="isFromTC">
-        <b-col sm="12">
+        <b-col sm="2">
           <p class="button-area">
             <b-button v-on:click="toggleSaveTemplateModal" variant="primary">
               <i class="fa fa-floppy-o"></i>&nbsp;Save Template
             </b-button>
           </p>
         </b-col>
+        <b-col sm="1">
+          <b-form-group>
+            <label for="isDefaultTemplate">Default Template</label>
+            <br />
+            <c-switch
+              class="mx-1"
+              id="isDefaultTemplate"
+              name="isDefaultTemplate"
+              color="primary"
+              v-model="plateProperties.isDefaultTemplate"
+              label
+              value="1"
+              uncheckedValue="0"
+              data-on="yes"
+              data-off="no"
+            />
+          </b-form-group>
+        </b-col>
       </b-row>
       <div class="reg-output">
         <b-row>
           <b-col sm="12">
-            <div ref="platePrintAreaOuter" id="platePrintAreaOuter" v-bind:style="platePrintStyleObject">
-                <div ref="marque" id="marque">
-                    <img ref="marque-image" id="marque-image" src="../assets/eu-stars.svg" />
-                    <span ref="marque-slogan" id="marque-slogan">GB</span>
+            <div
+              ref="platePrintAreaOuter"
+              id="platePrintAreaOuter"
+              v-bind:style="platePrintStyleObject"
+            >
+              <div ref="marque" id="marque">
+                <img ref="marque-image" id="marque-image" src="../assets/eu-stars.svg" />
+                <span ref="marque-slogan" id="marque-slogan">GB</span>
+              </div>
+              <div ref="platePrintArea" id="platePrintArea">
+                <div
+                  ref="plateRender"
+                  id="plateRender"
+                  v-bind:style="plateRenderStyle"
+                  v-text="plateProperties.plateTextInput"
+                ></div>
+                <div id="plateFooter">
+                  <div
+                    v-if="plateProperties.plateMessageInput.length > 0"
+                    ref="sloganMessage"
+                    id="sloganMessage"
+                    v-text="plateProperties.plateMessageInput"
+                    v-bind:style="sloganStyle"
+                  ></div>
+                  <div
+                    v-if="plateProperties.platePostCodeInput.length > 0"
+                    ref="sloganPostcode"
+                    id="sloganPostcode"
+                    v-text="plateProperties.platePostCodeInput"
+                    v-bind:style="postcodeStyle"
+                  ></div>
+                  <div
+                    v-if="plateProperties.plateMessageInput.length <= 0"
+                    ref="plateArtwork"
+                    id="plateArtwork"
+                  >
+                    <img
+                      v-bind:src="plateProperties.plateArtworkImage"
+                      v-bind:style="plateArtworkStyle"
+                    />
+                  </div>
                 </div>
-                <div ref="platePrintArea" id="platePrintArea">
-                    <div ref="plateRender" id="plateRender" v-text="plateProperties.plateTextInput"></div>
-                    <div v-if="plateProperties.plateMessageInput.length > 0" class="slogan" ref="sloganMessage" id="sloganMessage" v-text="plateProperties.plateMessageInput" v-bind:style="sloganStyle"></div>
-                    <div v-if="plateProperties.platePostCodeInput.length > 0" class="slogan" ref="sloganPostcode" id="sloganPostcode" v-text="plateProperties.platePostCodeInput" v-bind:style="postcodeStyle"></div>
-                    <div v-if="plateProperties.plateMessageInput.length <= 0" class="slogan" ref="plateArtwork" id="plateArtwork">
-                      <img v-bind:src="plateProperties.plateArtworkImage" v-bind:style="plateArtworkStyle" />
-                    </div>
-                    <div class="slogan" ref="bsau" id="bsau" v-text="plateProperties.plateBSAUInput"></div>
-                    <div v-if="plateProperties.plateLogo.length > 0" class="slogan" ref="plateLogo" id="plateLogo"><img v-bind:src="plateProperties.plateLogo" /></div>
+                <div
+                  ref="bsau"
+                  id="bsau"
+                  v-text="plateProperties.plateBSAUInput"
+                  v-bind:style="plateBSAUStyle"
+                ></div>
+                <div
+                  v-if="plateProperties.plateLogo.length > 0"
+                  class="slogan"
+                  ref="plateLogo"
+                  id="plateLogo"
+                >
+                  <img v-bind:src="plateProperties.plateLogo" />
                 </div>
+              </div>
             </div>
           </b-col>
         </b-row>
       </div>
     </div>
-    
+
     <!-- modals -->
-    <b-modal title="Barcode Preview" class="modal-warning" v-model="activeBarcodePreviewModal" hide-footer>
+    <b-modal
+      title="Barcode Preview"
+      class="modal-warning"
+      v-model="activeBarcodePreviewModal"
+      hide-footer
+    >
       <div class="form-container barcode-container">
         <b-row>
           <b-col sm="12">
-            <barcode v-bind:value="plateProperties.barcodeValue" format="CODE39" v-bind:text="plateProperties.plateTextInput">
-              No Barcode To Display
-            </barcode>
+            <barcode
+              v-bind:value="plateProperties.barcodeValue"
+              format="CODE39"
+              v-bind:text="plateProperties.plateTextInput"
+            >No Barcode To Display</barcode>
           </b-col>
         </b-row>
         <div slot="modal-footer" class="w-100">
-          <b-button size="sm" class="float-right" @click="activeBarcodePreviewModal=false">
-            Cancel
-          </b-button>
+          <b-button size="sm" class="float-right" @click="activeBarcodePreviewModal=false">Cancel</b-button>
         </div>
       </div>
     </b-modal>
-    <b-modal title="Save Template" class="modal-warning" v-model="activeStateSaveTemplateModal" hide-footer>
+    <b-modal
+      title="Save Template"
+      class="modal-warning"
+      v-model="activeStateSaveTemplateModal"
+      hide-footer
+    >
       <div class="form-container">
         <b-row>
           <b-col sm="12">
@@ -278,24 +492,34 @@
               <b-button v-on:click="saveTemplate" variant="primary" :disabled="!allowTemplateSave">
                 <i class="fa fa-floppy-o"></i>&nbsp;Save Template
               </b-button>
-              <b-alert v-if="templateSaveInProgress" variant="info" show><strong>Saving template. Please wait...</strong></b-alert>
+              <b-alert v-if="templateSaveInProgress" variant="info" show>
+                <strong>Saving template. Please wait...</strong>
+              </b-alert>
             </b-form-group>
           </b-col>
         </b-row>
       </div>
     </b-modal>
-    <b-modal title="Load Template" class="modal-warning" v-model="activeStateLoadTemplateModal" hide-footer>
+    <b-modal
+      title="Load Template"
+      class="modal-warning"
+      v-model="activeStateLoadTemplateModal"
+      hide-footer
+    >
       <div class="form-container">
         <b-row>
           <b-col sm="12">
             <b-form-group>
               <label for="selectedTemplate">Template Name</label>
-              <b-form-select id="selectedTemplate" v-if="templatesLoaded" v-model="plateProperties.selectedTemplateId"
-                  :plain="true"
-                  :options="loadedTemplates">
-              </b-form-select>
-              <div v-if="!templatesLoaded" >
-                  <i class="fa fa-spin fa-spinner"></i>
+              <b-form-select
+                id="selectedTemplate"
+                v-if="templatesLoaded"
+                v-model="plateProperties.selectedTemplateId"
+                :plain="true"
+                :options="loadedTemplates"
+              ></b-form-select>
+              <div v-if="!templatesLoaded">
+                <i class="fa fa-spin fa-spinner"></i>
               </div>
             </b-form-group>
           </b-col>
@@ -310,273 +534,481 @@
           </b-col>
         </b-row>
         <div slot="modal-footer" class="w-100">
-          <b-button size="sm" class="float-right" @click="activeStateLoadTemplateModal=false">
-            Cancel
-          </b-button>
+          <b-button size="sm" class="float-right" @click="activeStateLoadTemplateModal=false">Cancel</b-button>
         </div>
       </div>
     </b-modal>
-    <b-modal title="Audit Entry" size="lg" class="modal-warning" v-model="activeStateAuditModal" hide-footer>
+    <b-modal
+      title="Retail Customers"
+      size="lg"
+      class="modal-warning"
+      v-model="activeStateAuditModal"
+      hide-footer
+    >
       <div class="form-container">
-        <b-tabs v-model="auditTabIndex[0]">
-          <b-tab active>
-            <template slot="title">
-              <i class="icon-calculator"></i> {{auditTabs[0]}}
-            </template>
-            <b-row>
-              <b-col sm="12">
-              </b-col>
-            </b-row>
-          </b-tab>
-          <b-tab>
-            <template slot="title">
-              <i class="icon-basket-loaded"></i> {{auditTabs[1]}}
-            </template>
-            <b-row>
-              <b-col sm="12">
-                <b-card>
-                  <div slot="header">
-                    <strong>Contact Details</strong>
-                  </div>
-                  <div class="form-container">
-                    <b-row>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="contactTitle">Title<span class="mandatory">*</span></label>
-                          <b-form-select id="contactTitle" v-if="contactTitlesLoaded"  v-model="newRetailContact.title_id"
-                            :plain="true"
-                            :options="contactTitles">
-                          </b-form-select>
-                          <div v-if="!contactTitlesLoaded" >
-                            <i class="fa fa-spin fa-spinner"></i>
-                          </div>
-                        </b-form-group>
-                      </b-col>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="contactFirstName">First Name<span class="mandatory">*</span></label>
-                          <b-form-input v-model="newRetailContact.first_name" type="text" id="contactFirstName"></b-form-input>
-                        </b-form-group>
-                      </b-col>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="contactLastName">Last Name<span class="mandatory">*</span></label>
-                          <b-form-input v-model="newRetailContact.last_name" type="text" id="contactLastName"></b-form-input>
-                        </b-form-group>
-                      </b-col>
-                    </b-row>
-                    <b-row>
-                      <b-col sm="6">
-                        <b-form-group>
-                          <label for="contactEmail">Email<span class="mandatory">*</span></label>
-                          <b-form-input v-model="newRetailContact.email" type="text" id="contactEmail"></b-form-input>
-                        </b-form-group>                                    
-                      </b-col>
-                      <b-col sm="6">
-                        <b-form-group>
-                          <label for="contactPhone">Phone No</label>
-                          <b-form-input v-model="newRetailContact.phone_number" type="text" id="contactPhone"></b-form-input>
-                        </b-form-group>
-                      </b-col>                                
-                    </b-row>
-                  </div>
-                </b-card>
-                <b-card>
-                  <div slot="header">
-                    <strong>Address Details</strong>
-                  </div>
-                  <div class="form-container">
-                    <b-row>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="addressPropertyNumber">Property No<span class="mandatory">*</span></label>
-                          <b-form-input v-model="newRetailContact.address.property_number" type="text" id="addressPropertyNumber"></b-form-input>
-                        </b-form-group>
-                      </b-col>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="addressAddress1">Address<span class="mandatory">*</span></label>
-                          <b-form-input v-model="newRetailContact.address.address1" type="text" id="addressAddress1"></b-form-input>
-                        </b-form-group>
-                      </b-col>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="addressTown">Town<span class="mandatory">*</span></label>
-                          <b-form-input v-model="newRetailContact.address.town" type="text" id="addressTown"></b-form-input>
-                        </b-form-group>
-                      </b-col>
-                    </b-row>
-                    <b-row>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="addressPostCode">Post Code</label>
-                          <b-form-input v-model="newRetailContact.address.post_code" type="text" id="addressPostCode"></b-form-input>
-                        </b-form-group>
-                      </b-col>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="addressCounty">County<span class="mandatory">*</span></label>
-                          <b-form-select id="addressCounty" v-if="countiesLoaded"  v-model="newRetailContact.address.county_id"
-                            :plain="true"
-                            :options="counties">
-                          </b-form-select>
-                          <div v-if="!countiesLoaded" >
-                            <i class="fa fa-spin fa-spinner"></i>
-                          </div>
-                        </b-form-group>
-                      </b-col>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="addressCountry">Country<span class="mandatory">*</span></label>
-                          <b-form-select id="addressCountry" v-if="countriesLoaded"  v-model="newRetailContact.address.country_id"
-                            :plain="true"
-                            :options="countries">
-                          </b-form-select>
-                          <div v-if="!countriesLoaded" >
-                            <i class="fa fa-spin fa-spinner"></i>
-                          </div>
-                        </b-form-group>
-                      </b-col>
-                    </b-row>
-                  </div>
-                </b-card>
-                <b-card>
-                  <div slot="header">
-                      <strong>Proof of Identity/Entitlement</strong>
-                  </div>
-                  <div class="form-container">
-                    <b-row>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="proofOfId">Proof of Identity<span class="mandatory">*</span></label>
-                          <b-form-select id="proofOfId" v-if="proofOfIdsLoaded"  v-model="newRetailContact.proof_of_id"
-                            :plain="true"
-                            :options="proofOfIds">
-                          </b-form-select>
-                          <div v-if="!proofOfIdsLoaded" >
-                            <i class="fa fa-spin fa-spinner"></i>
-                          </div>
-                        </b-form-group>
-                      </b-col>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="proofOfIdRef">Identity Reference<span class="mandatory">*</span></label>
-                          <b-form-input v-model="newRetailContact.proof_of_id_ref" type="text" id="proofOfIdRef"></b-form-input>
-                        </b-form-group>
-                      </b-col>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label v-if="isIdentityUploadSelected">Upload Identity<span class="mandatory">*</span> (Or <span class="upload-switch" v-on:click="isIdentityUploadSelected = !isIdentityUploadSelected">Capture</span>)</label>
-                          <label v-if="!isIdentityUploadSelected">Capture Identity<span class="mandatory">*</span> (Or <span class="upload-switch" v-on:click="isIdentityUploadSelected = !isIdentityUploadSelected">Upload</span>)</label>
-                          <vue-base64-file-upload
-                            v-if="isIdentityUploadSelected" 
-                            class="v1"
-                            accept="image/png,image/jpeg"
-                            image-class="image-upload-display"
-                            input-class="form-control"
-                            :max-size="2"
-                            @size-exceeded="onIdSizeExceeded"
-                            @file="onIdFile"
-                            @load="onIdLoad" />
-
-                          <div v-if="!isIdentityUploadSelected" class="capture-image-div">
-                            <img v-if="isIdentityCaptureComplete" v-bind:src="captures[0].image" class="image-upload-display" />
-                            <div class="vue-base64-file-upload-wrapper" style="position: relative; width: 100%;">
-                              <input type="text" v-on:click="toggleImageCaptureModal()" placeholder="Click here to capture image" readonly class="form-control" style="width: 100%; cursor: pointer;">
-                            </div>
-                          </div>
-                        </b-form-group>
-                      </b-col>
-                    </b-row>
-                    <b-row>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="proofOfEntitlement">Proof of Entitlement<span class="mandatory">*</span></label>
-                          <b-form-select id="proofOfEntitlement" v-if="proofOfEntitlementLoaded"  v-model="newRetailContact.proof_of_entitlement"
-                            :plain="true"
-                            :options="proofOfEntitlements">
-                          </b-form-select>
-                          <div v-if="!proofOfEntitlementLoaded" >
-                            <i class="fa fa-spin fa-spinner"></i>
-                          </div>
-                        </b-form-group>
-                      </b-col>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="proofOfEntitlementRef">Entitlement Reference<span class="mandatory">*</span></label>
-                          <b-form-input v-model="newRetailContact.proof_of_entitlement_ref" type="text" id="proofOfEntitlementRef"></b-form-input>
-                        </b-form-group>
-                      </b-col>
-                      <b-col sm="4">
-                      <b-form-group>
-                        <label v-if="isEntitlementUploadSelected">Upload Entitlement<span class="mandatory">*</span> (Or <span class="upload-switch" v-on:click="isEntitlementUploadSelected = !isEntitlementUploadSelected">Capture</span>)</label>
-                        <label v-if="!isEntitlementUploadSelected">Capture Entitlement<span class="mandatory">*</span> (Or <span class="upload-switch" v-on:click="isEntitlementUploadSelected = !isEntitlementUploadSelected">Upload</span>)</label>
-                        <vue-base64-file-upload
-                          v-if="isEntitlementUploadSelected" 
-                          class="v1"
-                          accept="image/png,image/jpeg"
-                          image-class="image-upload-display"
-                          input-class="form-control"
-                          :max-size="2"
-                          @size-exceeded="onIdSizeExceeded"
-                          @file="onEntFile"
-                          @load="onEntLoad" />
-
-                        <div v-if="!isEntitlementUploadSelected" class="capture-image-div">
-                          <img v-if="isEntitlementCaptureComplete" src="" class="image-upload-display" />
-                          <div class="vue-base64-file-upload-wrapper" style="position: relative; width: 100%;">
-                            <input type="text" v-on:click="toggleImageCaptureModal()" placeholder="Click here to capture image" readonly class="form-control" style="width: 100%; cursor: pointer;">
-                          </div>
-                        </div>
-                      </b-form-group>
-                    </b-col>
-                    </b-row>
-                    <b-row>
-                      <b-col sm="4">
-                        <b-form-group>
-                          <label for="documentVerified">Document Verified</label><br/>
-                          <c-switch class="mx-1" id="documentVerified"  name="documentVerified" color="primary" v-model="newRetailContact.document_verified" label value="1" uncheckedValue="0" dataOn="yes" dataOff="no" />
-                        </b-form-group>
-                      </b-col>
-                    </b-row>
-                    <b-row>
-                      <b-col cols="12" sm="12" md="12">
-                        <p>
-                          <b-button v-on:click="saveRetailCustomer" variant="primary" :disabled="!allowRetailSave">
-                            <i class="fa fa-check"></i>&nbsp;Save Customer
-                          </b-button>
-                        </p>
-                        <b-alert v-if="saveRetailError" variant="danger" show><strong>Error saving data. Please try again.</strong></b-alert>
-                        <b-alert v-if="saveRetailInProgress" variant="info" show><strong>Saving data. Please wait...</strong></b-alert>
-                      </b-col>
-                    </b-row>
-                    <hr />
-                  </div>
-                </b-card>
-              </b-col>
-            </b-row>
-            <!-- modal -->
-            <b-modal title="Capture Image" class="modal-warning" size="lg" v-model="activeStateImageCaptureModal" @ok="toggleImageCaptureModal()" ok-variant="warning">
+        <template slot="title">
+          <i class="icon-basket-loaded"></i>
+          {{auditTabs[1]}}
+        </template>
+        <b-row>
+          <b-col sm="12">
+            <b-card>
+              <div slot="header">
+                <strong>Contact Details</strong>
+              </div>
               <div class="form-container">
                 <b-row>
-                  <b-col sm="12">
-                    <div><video ref="video" id="video" width="700" height="600" autoplay></video></div>
-                    <b-button v-on:click="captureImage()" variant="primary">Take Photo</b-button>
-                    <canvas ref="canvas" id="canvas" width="760" height="600"></canvas>
-                    <ul>
-                      <li v-for="c in captures" :key="c.id">
-                          <img v-bind:src="c.image" height="50" />
-                      </li>
-                    </ul>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="contactTitle">
+                        Title
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-select
+                        id="contactTitle"
+                        v-if="contactTitlesLoaded"
+                        v-model="newRetailContact.title_id"
+                        :plain="true"
+                        :options="contactTitles"
+                      ></b-form-select>
+                      <div v-if="!contactTitlesLoaded">
+                        <i class="fa fa-spin fa-spinner"></i>
+                      </div>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="contactFirstName">
+                        First Name
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-input
+                        v-model="newRetailContact.first_name"
+                        type="text"
+                        id="contactFirstName"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="contactLastName">
+                        Last Name
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-input
+                        v-model="newRetailContact.last_name"
+                        type="text"
+                        id="contactLastName"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                </b-row>
+                <b-row>
+                  <b-col sm="6">
+                    <b-form-group>
+                      <label for="contactEmail">
+                        Email
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-input v-model="newRetailContact.email" type="text" id="contactEmail"></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="6">
+                    <b-form-group>
+                      <label for="contactPhone">Phone No</label>
+                      <b-form-input
+                        v-model="newRetailContact.phone_number"
+                        type="text"
+                        id="contactPhone"
+                      ></b-form-input>
+                    </b-form-group>
                   </b-col>
                 </b-row>
               </div>
-            </b-modal>
-          </b-tab>
-        </b-tabs>
+            </b-card>
+            <b-card>
+              <div slot="header">
+                <strong>Address Details</strong>
+              </div>
+              <div class="form-container">
+                <b-row>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="addressPropertyNumber">
+                        Property No
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-input
+                        v-model="newRetailContact.address.property_number"
+                        type="text"
+                        id="addressPropertyNumber"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="addressAddress1">
+                        Address
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-input
+                        v-model="newRetailContact.address.address1"
+                        type="text"
+                        id="addressAddress1"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="addressTown">
+                        Town
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-input
+                        v-model="newRetailContact.address.town"
+                        type="text"
+                        id="addressTown"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                </b-row>
+                <b-row>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="addressPostCode">Post Code</label>
+                      <b-form-input
+                        v-model="newRetailContact.address.post_code"
+                        type="text"
+                        id="addressPostCode"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="addressCounty">
+                        County
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-select
+                        id="addressCounty"
+                        v-if="countiesLoaded"
+                        v-model="newRetailContact.address.county_id"
+                        :plain="true"
+                        :options="counties"
+                      ></b-form-select>
+                      <div v-if="!countiesLoaded">
+                        <i class="fa fa-spin fa-spinner"></i>
+                      </div>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="addressCountry">
+                        Country
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-select
+                        id="addressCountry"
+                        v-if="countriesLoaded"
+                        v-model="newRetailContact.address.country_id"
+                        :plain="true"
+                        :options="countries"
+                      ></b-form-select>
+                      <div v-if="!countriesLoaded">
+                        <i class="fa fa-spin fa-spinner"></i>
+                      </div>
+                    </b-form-group>
+                  </b-col>
+                </b-row>
+              </div>
+            </b-card>
+            <b-card>
+              <div slot="header">
+                <strong>Proof of Identity/Entitlement</strong>
+              </div>
+              <div class="form-container">
+                <b-row>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="proofOfId">
+                        Proof of Identity
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-select
+                        id="proofOfId"
+                        v-if="proofOfIdsLoaded"
+                        v-model="newRetailContact.proof_of_id"
+                        :plain="true"
+                        :options="proofOfIds"
+                      ></b-form-select>
+                      <div v-if="!proofOfIdsLoaded">
+                        <i class="fa fa-spin fa-spinner"></i>
+                      </div>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="proofOfIdRef">
+                        Identity Reference
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-input
+                        v-model="newRetailContact.proof_of_id_ref"
+                        type="text"
+                        id="proofOfIdRef"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label v-if="isIdentityUploadSelected">
+                        Upload Identity
+                        <span class="mandatory">*</span> (Or
+                        <span
+                          class="upload-switch"
+                          v-on:click="isIdentityUploadSelected = !isIdentityUploadSelected"
+                        >Capture</span>)
+                      </label>
+                      <label v-if="!isIdentityUploadSelected">
+                        Capture Identity
+                        <span class="mandatory">*</span> (Or
+                        <span
+                          class="upload-switch"
+                          v-on:click="isIdentityUploadSelected = !isIdentityUploadSelected"
+                        >Upload</span>)
+                      </label>
+                      <vue-base64-file-upload
+                        v-if="isIdentityUploadSelected"
+                        class="v1"
+                        accept="image/png, image/jpeg"
+                        image-class="image-upload-display"
+                        input-class="form-control"
+                        :max-size="2"
+                        @size-exceeded="onIdSizeExceeded"
+                        @file="onIdFile"
+                        @load="onIdLoad"
+                      />
+
+                      <div v-if="!isIdentityUploadSelected" class="capture-image-div">
+                        <img
+                          v-if="isIdentityCaptureComplete"
+                          v-bind:src="capturesIdentity[0].image"
+                          class="image-upload-display"
+                        />
+                        <div
+                          class="vue-base64-file-upload-wrapper"
+                          style="position: relative; width: 100%;"
+                        >
+                          <input
+                            type="text"
+                            v-on:click="toggleIdentityImageCaptureModal()"
+                            placeholder="Click here to capture image"
+                            readonly
+                            class="form-control"
+                            style="width: 100%; cursor: pointer;"
+                          />
+                        </div>
+                      </div>
+                    </b-form-group>
+                  </b-col>
+                </b-row>
+                <b-row>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="proofOfEntitlement">
+                        Proof of Entitlement
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-select
+                        id="proofOfEntitlement"
+                        v-if="proofOfEntitlementLoaded"
+                        v-model="newRetailContact.proof_of_entitlement"
+                        :plain="true"
+                        :options="proofOfEntitlements"
+                      ></b-form-select>
+                      <div v-if="!proofOfEntitlementLoaded">
+                        <i class="fa fa-spin fa-spinner"></i>
+                      </div>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="proofOfEntitlementRef">
+                        Entitlement Reference
+                        <span class="mandatory">*</span>
+                      </label>
+                      <b-form-input
+                        v-model="newRetailContact.proof_of_entitlement_ref"
+                        type="text"
+                        id="proofOfEntitlementRef"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label v-if="isEntitlementUploadSelected">
+                        Upload Entitlement
+                        <span class="mandatory">*</span> (Or
+                        <span
+                          class="upload-switch"
+                          v-on:click="isEntitlementUploadSelected = !isEntitlementUploadSelected"
+                        >Capture</span>)
+                      </label>
+                      <label v-if="!isEntitlementUploadSelected">
+                        Capture Entitlement
+                        <span class="mandatory">*</span> (Or
+                        <span
+                          class="upload-switch"
+                          v-on:click="isEntitlementUploadSelected = !isEntitlementUploadSelected"
+                        >Upload</span>)
+                      </label>
+                      <vue-base64-file-upload
+                        v-if="isEntitlementUploadSelected"
+                        class="v1"
+                        accept="image/png, image/jpeg"
+                        image-class="image-upload-display"
+                        input-class="form-control"
+                        :max-size="2"
+                        @size-exceeded="onIdSizeExceeded"
+                        @file="onEntFile"
+                        @load="onEntLoad"
+                      />
+
+                      <div v-if="!isEntitlementUploadSelected" class="capture-image-div">
+                        <img 
+                          v-if="isEntitlementCaptureComplete"
+                          v-bind:src="capturesEntitlement[0].image"
+                          class="image-upload-display" />
+                        <div
+                          class="vue-base64-file-upload-wrapper"
+                          style="position: relative; width: 100%;"
+                        >
+                          <input
+                            type="text"
+                            v-on:click="toggleEntitlementImageCaptureModal()"
+                            placeholder="Click here to capture image"
+                            readonly
+                            class="form-control"
+                            style="width: 100%; cursor: pointer;"
+                          />
+                        </div>
+                      </div>
+                    </b-form-group>
+                  </b-col>
+                </b-row>
+                <b-row>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="documentVerified">Document Verified</label>
+                      <br />
+                      <c-switch
+                        class="mx-1"
+                        id="documentVerified"
+                        name="documentVerified"
+                        color="primary"
+                        v-model="newRetailContact.document_verified"
+                        label
+                        value="1"
+                        uncheckedValue="0"
+                        data-on="yes"
+                        data-off="no"
+                      />
+                    </b-form-group>
+                  </b-col>
+                </b-row>
+                <b-row>
+                  <b-col sm="12">
+                    <b-form-group>
+                      <label for="isRetailCustomerPrintConfirmed">Retail customer print confirmed</label>
+                      <br />
+                      <c-switch
+                        class="mx-1"
+                        id="isRetailCustomerPrintConfirmed"
+                        name="isRetailCustomerPrintConfirmed"
+                        color="primary"
+                        v-model="plateProperties.isRetailCustomerPrintConfirmed"
+                        label
+                        value="1"
+                        uncheckedValue="0"
+                        data-on="yes"
+                        data-off="no"
+                      />
+                    </b-form-group>
+                  </b-col>
+                </b-row>
+                <b-row>
+                  <b-col cols="12" sm="12" md="12">
+                    <p>
+                      <b-button
+                        v-on:click="saveRetailCustomer"
+                        variant="primary"
+                        :disabled="!allowRetailSave"
+                      >
+                        <i class="fa fa-check"></i>&nbsp;Save Customer
+                      </b-button>
+                    </p>
+                    <b-alert v-if="saveRetailError" variant="danger" show>
+                      <strong>Error saving data. Please try again.</strong>
+                    </b-alert>
+                    <b-alert v-if="saveRetailInProgress" variant="info" show>
+                      <strong>Saving data. Please wait...</strong>
+                    </b-alert>
+                  </b-col>
+                </b-row>
+                <hr />
+              </div>
+            </b-card>
+          </b-col>
+        </b-row>
+        <!-- modal -->
+        <b-modal
+          title="Capture Image"
+          class="modal-warning"
+          size="lg"
+          v-model="activeStateEntitlementImageCaptureModal"
+          @ok="toggleEntitlementImageCaptureModal()"
+          ok-variant="warning"
+        >
+          <div class="form-container">
+            <b-row>
+              <b-col sm="12">
+                <div>
+                  <video ref="videoEntitlement" id="videoEntitlement" width="700" height="600" autoplay></video>
+                </div>
+                <b-button v-on:click="captureEntitlementImage()" variant="primary">Take Photo</b-button>
+                <canvas ref="canvasEntitlement" id="canvasEntitlement" width="640" height="480"></canvas>
+              </b-col>
+            </b-row>
+          </div>
+        </b-modal>
+        <b-modal
+          title="Capture Image"
+          class="modal-warning"
+          size="lg"
+          v-model="activeStateIdentityImageCaptureModal"
+          @ok="toggleIdentityImageCaptureModal()"
+          ok-variant="warning"
+        >
+          <div class="form-container">
+            <b-row>
+              <b-col sm="12">
+                <div>
+                  <video ref="videoIdentity" id="videoIdentity" width="700" height="600" autoplay></video>
+                </div>
+                <b-button v-on:click="captureIdentityImage()" variant="primary">Take Photo</b-button>
+                <canvas ref="canvasIdentity" id="canvasIdentity" width="640" height="480"></canvas>
+              </b-col>
+            </b-row>
+          </div>
+        </b-modal>
       </div>
     </b-modal>
-    <b-modal title="New Template" class="modal-warning" v-model="activeStateNewTemplateModal" ok-variant="warning">
+    <b-modal
+      title="New Template"
+      class="modal-warning"
+      v-model="activeStateNewTemplateModal"
+      hide-footer
+    >
       <div class="form-container">
         <b-row>
           <b-col sm="12">
@@ -589,7 +1021,11 @@
                   <b-col sm="4">
                     <b-form-group>
                       <label for="templateName">Template Name</label>
-                      <b-form-input v-model="plateProperties.templateName" type="text" id="templateName"></b-form-input>
+                      <b-form-input
+                        v-model="plateProperties.templateName"
+                        type="text"
+                        id="templateName"
+                      ></b-form-input>
                     </b-form-group>
                   </b-col>
                   <b-col sm="6">
@@ -597,7 +1033,9 @@
                       <b-button v-on:click="saveTemplate" variant="primary">
                         <i class="fa fa-check"></i>&nbsp;Save Template
                       </b-button>
-                      <b-alert v-if="templateSaveInProgress" variant="info" show><strong>Saving template. Please wait...</strong></b-alert>
+                      <b-alert v-if="templateSaveInProgress" variant="info" show>
+                        <strong>Saving template. Please wait...</strong>
+                      </b-alert>
                     </b-form-group>
                   </b-col>
                 </b-row>
@@ -607,55 +1045,78 @@
         </b-row>
       </div>
     </b-modal>
-    <b-modal title="Template Settings" class="modal-warning" v-model="activeStateTemplateSettingsModal" ok-variant="warning">
+    <b-modal
+      title="Template Settings"
+      class="modal-warning"
+      v-model="activeStateTemplateSettingsModal"
+      hide-footer
+    >
       <div class="form-container">
         <b-row>
-          <b-col sm="2">
-            <b-form-group>
-              <label for="isMirror">Mirror</label><br/>
-              <c-switch class="mx-1" id="isMirror"  name="isMirror" color="primary" v-model="plateProperties.isMirror" label value="1" uncheckedValue="0" dataOn="yes" dataOff="no" />
-            </b-form-group>
-          </b-col>
-          <b-col sm="2">
-            <b-form-group>
-              <label for="isDirectPRint">Direct Print</label><br/>
-              <c-switch class="mx-1" id="isDirectPRint"  name="isDirectPRint" color="primary" label value="1" uncheckedValue="0" dataOn="yes" dataOff="no" />
-            </b-form-group>
-          </b-col>
-          <b-col sm="2">
-            <b-form-group>
-              <label for="isBarcodePrint">Barcode Print</label><br/>
-              <c-switch class="mx-1" id="isBarcodePrint"  name="isBarcodePrint" color="primary" label value="1" uncheckedValue="0" dataOn="yes" dataOff="no" />
-            </b-form-group>
-          </b-col>
-          <b-col sm="6">
-            <b-form-group>
-              <label for="plateBorderColour">Colour</label>    
-                <b-form-select id="plateBorderColour" v-model="plateProperties.plateBorderColour"
-                  :plain="true"
-                  :options="borderColours">
-                </b-form-select>
-            </b-form-group>
-          </b-col>
-          <b-col sm="2">
-            <b-form-group>
-              <label for="plateMessageRaiseInput">Slogan Raise</label>
-              <b-form-input v-model="plateProperties.plateMessageRaiseInput" type="number" id="plateMessageRaiseInput" value="0"></b-form-input>
-            </b-form-group>
-          </b-col>
-          <b-col sm="2">
-            <label for="plateMessageOffsetInput">Slogan offset</label>
-            <b-form-input v-model="plateProperties.plateMessageOffsetInput" type="number" class="form-control" id="plateMessageOffsetInput" value="0" ></b-form-input>
-          </b-col>
-          <b-col sm="2">
-            <b-form-group>
-              <label for="platePostCodeRaiseInput">Postcode Raise</label>
-              <b-form-input v-model="plateProperties.platePostCodeRaiseInput" type="number" id="platePostCodeRaiseInput" value="0"></b-form-input>
-            </b-form-group>
-          </b-col>
-          <b-col sm="2">
-            <label for="platePostCodeOffsetInput">Postcode offset</label>
-            <b-form-input v-model="plateProperties.platePostCodeOffsetInput" type="number" class="form-control" id="platePostCodeOffsetInput" value="0" ></b-form-input>
+          <b-col sm="12">
+            <b-card>
+              <div slot="header">
+                <strong>Postcode &amp; Slogan</strong>
+              </div>
+              <div class="form-container">
+                <b-row>
+                  <b-col sm="3">
+                    <b-form-group>
+                      <label for="plateMessageRaiseInput">Slogan Raise</label>
+                      <b-form-input
+                        v-model="plateProperties.plateMessageRaiseInput"
+                        type="number"
+                        id="plateMessageRaiseInput"
+                        value="0"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="3">
+                    <label for="plateMessageOffsetInput">Slogan offset</label>
+                    <b-form-input
+                      v-model="plateProperties.plateMessageOffsetInput"
+                      type="number"
+                      class="form-control"
+                      id="plateMessageOffsetInput"
+                      value="0"
+                    ></b-form-input>
+                  </b-col>
+                  <b-col sm="3">
+                    <b-form-group>
+                      <label for="platePostCodeRaiseInput">Postcode Raise</label>
+                      <b-form-input
+                        v-model="plateProperties.platePostCodeRaiseInput"
+                        type="number"
+                        id="platePostCodeRaiseInput"
+                        value="0"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="3">
+                    <label for="platePostCodeOffsetInput">Postcode offset</label>
+                    <b-form-input
+                      v-model="plateProperties.platePostCodeOffsetInput"
+                      type="number"
+                      class="form-control"
+                      id="platePostCodeOffsetInput"
+                      value="0"
+                    ></b-form-input>
+                  </b-col>
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="plateRaiseInput">Raise</label>
+                      <b-form-input
+                        v-model="plateProperties.plateRaiseInput"
+                        type="number"
+                        id="plateRaiseInput"
+                        value="0"
+                        min="0"
+                      ></b-form-input>
+                    </b-form-group>
+                  </b-col>
+                </b-row>
+              </div>
+            </b-card>
           </b-col>
         </b-row>
         <b-row>
@@ -669,46 +1130,187 @@
                   <b-col sm="4">
                     <b-form-group>
                       <label for="plateBSAUInput">Prefix</label>
-                      <b-form-input v-model="plateProperties.plateBSAUInput" type="text" id="plateBSAUInput" placeholder="Enter Message"></b-form-input>
+                      <b-form-input
+                        v-model="plateProperties.plateBSAUInput"
+                        type="text"
+                        id="plateBSAUInput"
+                        placeholder="Enter Message"
+                      ></b-form-input>
                     </b-form-group>
                   </b-col>
                   <b-col sm="4">
                     <b-form-group>
                       <label for="plateBSAURaiseInput">Raise</label>
-                      <b-form-input v-model="plateProperties.plateBSAURaiseInput" type="number" id="plateBSAURaiseInput" value="5" min="0"></b-form-input>
+                      <b-form-input
+                        v-model="plateProperties.plateBSAURaiseInput"
+                        type="number"
+                        id="plateBSAURaiseInput"
+                        value="5"
+                        min="0"
+                      ></b-form-input>
                     </b-form-group>
                   </b-col>
                   <b-col sm="4">
                     <label for="plateBSAUFontSizeInput">Font Size</label>
-                    <b-form-input v-model="plateProperties.plateBSAUFontSizeInput" type="number" id="plateBSAUFontSizeInput" value="5" min="0" ></b-form-input>
+                    <b-form-input
+                      v-model="plateProperties.plateBSAUFontSizeInput"
+                      type="number"
+                      id="plateBSAUFontSizeInput"
+                      value="5"
+                      min="0"
+                    ></b-form-input>
                   </b-col>
                 </b-row>
               </div>
             </b-card>
           </b-col>
         </b-row>
+        <b-row>
+          <b-col sm="12">
+            <b-card>
+              <div slot="header">
+                <strong>Other Settings</strong>
+              </div>
+              <div class="form-container">
+                <b-row>
+                  <b-col sm="3">
+                    <b-form-group>
+                      <label for="isMirror">Mirror</label>
+                      <br />
+                      <c-switch
+                        class="mx-1"
+                        id="isMirror"
+                        name="isMirror"
+                        color="primary"
+                        v-model="plateProperties.isMirror"
+                        label
+                        value="1"
+                        uncheckedValue="0"
+                        data-on="yes"
+                        data-off="no"
+                      />
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="3">
+                    <b-form-group>
+                      <label for="isBarcodePrint">Barcode Print</label>
+                      <br />
+                      <c-switch
+                        class="mx-1"
+                        id="isBarcodePrint"
+                        name="isBarcodePrint"
+                        color="primary"
+                        v-model="plateProperties.isBarcodePrint"
+                        label
+                        value="1"
+                        uncheckedValue="0"
+                        data-on="yes"
+                        data-off="no"
+                      />
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="6">
+                    <b-form-group>
+                      <label for="plateBorderColour">Border Colour</label>
+                      <b-form-select
+                        id="plateBorderColour"
+                        v-model="plateProperties.plateBorderColour"
+                        :plain="true"
+                        :options="borderColours"
+                      ></b-form-select>
+                    </b-form-group>
+                  </b-col>
+                </b-row>
+              </div>
+            </b-card>
+          </b-col>
+        </b-row>
+        <b-row>
+          <b-col sm="12">
+            <b-card>
+              <div slot="header">
+                <strong>Printer Settings</strong>
+              </div>
+              <div class="form-container">
+                <b-row>
+                  <b-col sm="6">
+                    <b-form-group>
+                      <label for="platePrinterName">Plate Printer</label>
+                      <b-form-select
+                        id="platePrinterName"
+                        v-model="platePrinterName"
+                        :plain="true"
+                        :options="printers"
+                      ></b-form-select>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="6">
+                    <b-form-group>
+                      <label for="barcodePrinterName">Barcode Printer</label>
+                      <b-form-select
+                        id="barcodePrinterName"
+                        v-model="barcodePrinterName"
+                        :plain="true"
+                        :options="printers"
+                      ></b-form-select>
+                    </b-form-group>
+                  </b-col>
+                </b-row>
+              </div>
+            </b-card>
+          </b-col>
+        </b-row>
+        <div slot="modal-footer" class="w-100">
+          <b-button size="sm" class="float-right" @click="activeStateTemplateSettingsModal=false">Ok</b-button>
+        </div>
       </div>
     </b-modal>
-    <b-modal title="Font Settings" class="modal-warning" v-model="activeStateFontSettingsModal" ok-variant="warning">
+    <b-modal
+      title="Font Settings"
+      class="modal-warning"
+      v-model="activeStateFontSettingsModal"
+      ok-variant="warning"
+    >
       <div v-if="fontModalType=='postcode'" class="form-container">
         <b-row>
           <b-col sm="6">
             <b-form-group>
               <label for="platePostCodeFont">Font</label>
-              <b-form-select id="platePostCodeFont" v-model="plateProperties.platePostCodeFont"
-                  :plain="true"
-                  :options="plateFonts">
-              </b-form-select>
+              <b-form-select
+                id="platePostCodeFont"
+                v-model="plateProperties.platePostCodeFont"
+                :plain="true"
+                :options="plateFonts"
+              ></b-form-select>
             </b-form-group>
           </b-col>
           <b-col sm="4">
             <label for="platePostCodeFontSizeInput">Size</label>
-            <b-form-input v-model="plateProperties.platePostCodeFontSizeInput" type="number" class="form-control" id="platePostCodeFontSizeInput" value="7" min="0" ></b-form-input>
+            <b-form-input
+              v-model="plateProperties.platePostCodeFontSizeInput"
+              type="number"
+              class="form-control"
+              id="platePostCodeFontSizeInput"
+              value="7"
+              min="0"
+            ></b-form-input>
           </b-col>
           <b-col sm="2">
             <b-form-group>
-              <label for="isPostCodeItalic">Italic</label><br/>
-              <c-switch class="mx-1" id="isPostCodeItalic"  name="isPostCodeItalic" color="primary" v-model="plateProperties.isPostCodeItalic" label value="1" uncheckedValue="0" dataOn="yes" dataOff="no" />
+              <label for="isPostCodeItalic">Italic</label>
+              <br />
+              <c-switch
+                class="mx-1"
+                id="isPostCodeItalic"
+                name="isPostCodeItalic"
+                color="primary"
+                v-model="plateProperties.isPostCodeItalic"
+                label
+                value="1"
+                uncheckedValue="0"
+                data-on="yes"
+                data-off="no"
+              />
             </b-form-group>
           </b-col>
         </b-row>
@@ -718,21 +1320,67 @@
           <b-col sm="6">
             <b-form-group>
               <label for="plateMessageFont">Font</label>
-              <b-form-select id="plateMessageFont" v-model="plateProperties.plateMessageFont"
-                  :plain="true"
-                  :options="plateFonts">
-              </b-form-select>
+              <b-form-select
+                id="plateMessageFont"
+                v-model="plateProperties.plateMessageFont"
+                :plain="true"
+                :options="plateFonts"
+              ></b-form-select>
             </b-form-group>
           </b-col>
           <b-col sm="4">
             <label for="plateMessageFontSizeInput">Size</label>
-            <b-form-input v-model="plateProperties.plateMessageFontSizeInput" type="number" class="form-control" id="plateMessageFontSizeInput" value="7" min="0" ></b-form-input>
+            <b-form-input
+              v-model="plateProperties.plateMessageFontSizeInput"
+              type="number"
+              class="form-control"
+              id="plateMessageFontSizeInput"
+              value="7"
+              min="0"
+            ></b-form-input>
           </b-col>
           <b-col sm="2">
             <b-form-group>
-              <label for="isPlateMessageItalic">Italic</label><br/>
-              <c-switch class="mx-1" id="isPlateMessageItalic"  name="isPlateMessageItalic" color="primary" v-model="plateProperties.isPlateMessageItalic" label value="1" uncheckedValue="0" dataOn="yes" dataOff="no" />
+              <label for="isPlateMessageItalic">Italic</label>
+              <br />
+              <c-switch
+                class="mx-1"
+                id="isPlateMessageItalic"
+                name="isPlateMessageItalic"
+                color="primary"
+                v-model="plateProperties.isPlateMessageItalic"
+                label
+                value="1"
+                uncheckedValue="0"
+                data-on="yes"
+                data-off="no"
+              />
             </b-form-group>
+          </b-col>
+        </b-row>
+      </div>
+    </b-modal>
+    <b-modal
+      title="Print Plate"
+      class="modal-warning"
+      v-model="activeStatePrintPlateModal"
+      hide-footer
+    >
+      <div class="form-container">
+        <b-row>
+          <b-col sm="12">
+            <b-form-group>
+              <div style="text-align: center;">
+                <h4>This plate has been printed previously. Are you sure you wish to reprint?</h4>
+              </div>
+            </b-form-group>
+            <div slot="modal-footer" class="w-100">
+              <b-button
+                size="sm"
+                class="float-right"
+                @click="closePrintConfirmModalAndPrint"
+              >Reprint</b-button>
+            </div>
           </b-col>
         </b-row>
       </div>
@@ -747,7 +1395,11 @@ import LoadingSpinner from '../components/loadingSpinner/LoadingSpinner';
 import { PassThrough } from 'stream';
 import VueBarcode from 'vue-barcode';
 import VueBase64FileUpload from 'vue-base64-file-upload';
-
+import { POINT_CONVERSION_COMPRESSED } from 'constants';
+import { print } from 'util';
+import { setTimeout } from 'timers';
+const { remote } = require('electron');
+const { BrowserWindow, dialog, shell } = remote;
 const { ipcRenderer } = require('electron');
 
 const getHTTPHeaders = () => {
@@ -873,16 +1525,53 @@ const getPlateSizes = (($http) => {
     });
 });
 
+const getSuppliers = (($http) => {
+    return new Promise((resolve, reject) => {
+        let headersObj = getHTTPHeaders();
+        $http.get("suppliers", headersObj)
+            .then((response) => {
+                resolve(response.data.suppliers);
+            })
+            .catch ((err) => {
+                console.error(err);
+                reject(err);
+            });
+    });
+});
+
+const checkPlateExists = (($http, reg) => {
+  return new Promise((resolve, reject) => {
+    let headersObj = getHTTPHeaders();
+    $http.get("plates/exist?vrm=" + reg, headersObj)
+      .then((response) => {
+        resolve(response.data.plates);
+      })
+      .catch ((err) => {
+        console.error(err);
+        reject(err);
+      });
+  });
+});
+
+const getPrinterList = () => {
+  let printWindow = new BrowserWindow({ 'auto-hide-menu-bar': true,show:false });
+  let list = printWindow.webContents.getPrinters();
+  return list;
+}
+
 export default {
   name: 'mainDesigner',
   components: {
     cSwitch,
     'barcode': VueBarcode,
-    VueBase64FileUpload
+    VueBase64FileUpload,
+    LoadingSpinner: LoadingSpinner
   },
   data: function () {
     return {
       isFromTC: false,
+      barcodePrinterName: 'Citizen CL-E321',
+      platePrinterName: 'TSC TTP-247',
       supplierId: 0,
       auditTabIndex: [0, 0],
       auditTabs: [
@@ -894,26 +1583,33 @@ export default {
       PLATE_HEIGHT: 111,
       PLATE_WIDTH: 521,
       EU_LOGO_WIDTH: 45,
+      currentTradeCustomer: {
+        supplierName: '',
+        dvlaLicCode: ''
+      },
+      currentTradeCustomerLoaded: false,
       plateProperties: {
+        isTradeCustomerPrintConfirmed: 0,
+        isRetailCustomerPrintConfirmed: 0,
         plateTextInput: '',
         plateRaiseInput: 0,
         plateMessageInput: '',
         plateMessageRaiseInput: 0,
         plateMessageOffsetInput: 0,
-        plateMessageFontSizeInput: 7,
+        plateMessageFontSizeInput: 5,
         plateMessageFont: 'Arial',
         isPlateMessageItalic: 0,
         platePostCodeInput: '',
         platePostCodeRaiseInput: 0,
         platePostCodePosition: 'Below',
         platePostCodeOffsetInput: 0,
-        platePostCodeFontSizeInput: 7,
+        platePostCodeFontSizeInput: 3,
         platePostCodeFont: 'Arial',
         isPostCodeItalic: 0,
-        plateBSAUInput: '',
+        plateBSAUInput: 'BSAU 145d',
         plateBSAURaiseInput: 0,
         plateBSAUOffsetInput: 0,
-        plateBSAUFontSizeInput: 5,
+        plateBSAUFontSizeInput: 3,
         isPrintBorder: 0,
         plateBorderMargin: 7,
         plateBorderWidth: 2,
@@ -923,6 +1619,7 @@ export default {
         isMirror: 0,
         templateName: '',
         selectedTemplateId: 0,
+        isDefaultTemplate: 0,
         barcodeValue: '',
         plateSelectedSize: 1,
         plateLogo: '',
@@ -932,7 +1629,10 @@ export default {
         plateArtworkImage: '',
         plateArtworkRaise: 0,
         plateArtworkOffset: 0,
-        plateArtworkSize: 7
+        plateArtworkSize: 7,
+        plateWIPInput: '',
+        isBarcodePrint: 0,
+        plateCode: 'trade'
       },
       newRetailContact: {
         first_name: "",
@@ -987,8 +1687,10 @@ export default {
         },
       },
       mediaStream: MediaStream,
-      captures: [],
-      activeStateImageCaptureModal: false,
+      capturesEntitlement: [],
+      capturesIdentity: [],
+      activeStateEntitlementImageCaptureModal: false,
+      activeStateIdentityImageCaptureModal: false,
       isEntitlementUploadSelected: false,
       isIdentityUploadSelected: false,
       isEntitlementCaptureComplete: false,
@@ -1001,24 +1703,32 @@ export default {
       ],
       platePostCodePostions: [
         {value: 'Below', text: 'Below'},
-        {value: 'Right', text: 'Right'},
-        {value: 'Left', text: 'Left'}
+        {value: 'Right', text: 'Right'}
       ],
       sloganStyle: {
-        fontFamily: 'Arial'
+        fontFamily: 'Arial',
+        fontSize: '5mm'
       },
       postcodeStyle: {
-        fontFamily: 'Arial'
+        fontFamily: 'Arial',
+        fontSize: '3mm',
       },
       plateArtworkStyle: {
         position: 'absolute',
         bottom: 0
+      },
+      plateRenderStyle: {
+        transform: 'inherit'
+      },
+      plateBSAUStyle: {
+        display: 'none'
       },
       plateSizes: [],
       plateSizesSelect: [],
       loadedTemplates: [],
       templatesLoaded: false,
       templateSaveInProgress: false,
+      plateSaveInProgress: false,
       overwriteTemplateWhenSaving: true,
       activeStateSaveTemplateModal: false,
       activeStateLoadTemplateModal: false,
@@ -1068,6 +1778,11 @@ export default {
         {value: 'Trebuchet MS', text: 'Trebuchet MS'},
         {value: 'Verdana', text: 'Verdana'}        
       ],
+      printers: [],
+      currentPlateReprint: false,
+      activeStatePrintPlateModal: false,
+      printJobRunning: false,
+      userObj: {}
     }
   },
   watch: {
@@ -1091,8 +1806,9 @@ export default {
     },
     'plateProperties.plateMessageRaiseInput': function(val, oldVal) {
         let raiseVal = parseInt(val);
-        var slognMessageDiv = document.getElementById('sloganMessage');
-        slognMessageDiv.style.bottom = raiseVal.toString() + "mm";
+        this.$data.sloganStyle.bottom = raiseVal.toString() + "mm";
+        //var slognMessageDiv = document.getElementById('sloganMessage');
+        //slognMessageDiv.style.bottom = raiseVal.toString() + "mm";
     },
     'plateProperties.plateMessageFontSizeInput': function(val, oldVal) {
         let raiseVal = parseInt(val);
@@ -1107,20 +1823,23 @@ export default {
     'plateProperties.platePostCodeInput': function(val, oldVal) {
       this.$data.plateProperties.platePostCodeInput = val.toUpperCase();
     },
-     'plateProperties.platePostCodeRaiseInput': function(val, oldVal) {
+    'plateProperties.platePostCodeRaiseInput': function(val, oldVal) {
         let raiseVal = parseInt(val);
-        var sloganPostcodeDiv = document.getElementById('sloganPostcode');
-        sloganPostcodeDiv.style.bottom = raiseVal.toString() + "mm";
+        this.$data.postcodeStyle.bottom = raiseVal.toString() + "mm";
+        //var sloganPostcodeDiv = document.getElementById('sloganPostcode');
+        //.style.bottom = raiseVal.toString() + "mm";
     },
     'plateProperties.platePostCodeFontSizeInput': function(val, oldVal) {
         let raiseVal = parseInt(val);
-        var sloganPostcodeDiv = document.getElementById('sloganPostcode');
-        sloganPostcodeDiv.style.fontSize = raiseVal.toString() + "mm";
+        this.$data.postcodeStyle.fontSize = raiseVal.toString() + 'mm';
+        //var sloganPostcodeDiv = document.getElementById('sloganPostcode');
+        //sloganPostcodeDiv.style.fontSize = raiseVal.toString() + "mm";
     },
     'plateProperties.platePostCodeOffsetInput': function(val, oldVal) {
         let raiseVal = parseInt(val);
-        var sloganPostcodeDiv = document.getElementById('sloganPostcode');
-        sloganPostcodeDiv.style.right = raiseVal.toString() + "mm";
+        this.$data.postcodeStyle.marginLeft = raiseVal.toString() + "mm";
+        //var sloganPostcodeDiv = document.getElementById('sloganPostcode');
+        //sloganPostcodeDiv.style.right = raiseVal.toString() + "mm";
     },
     'plateProperties.plateBSAURaiseInput': function(val, oldVal) {
         let raiseVal = parseInt(val);
@@ -1214,15 +1933,49 @@ export default {
       }
     },
     'plateProperties.platePostCodeFont': function(val, oldVal) {
-      console.log(val);
       this.postcodeStyle.fontFamily = val;
     },
     'plateProperties.plateMessageFont': function(val, oldVal) {
-      console.log(val);
       this.sloganStyle.fontFamily = val;
+    },
+    'plateProperties.plateArtworkRaise': function(val, oldVal) {
+      this.$data.plateArtworkStyle.bottom = val.toString() + 'mm';
+    },
+    'plateProperties.platePostCodePosition': function(val, oldVal) {
+      if (val =='Right') {
+        this.$data.sloganStyle.display = 'inline-flex';
+        this.$data.postcodeStyle.display = 'inline-flex';
+      }
+      else {
+        this.$data.sloganStyle.display = 'block';
+        this.$data.postcodeStyle.display = 'block';
+      }
+    },
+    'plateProperties.plateArtworkRaise': function(val, oldVal) {
+      this.$data.plateArtworkStyle.bottom = val.toString() + 'mm';
+    },
+    'plateProperties.isMirror': function(val, oldVal) {
+      if (val == 0) {
+        this.$data.plateRenderStyle.transform = 'inherit';
+      }
+      else {
+        this.$data.plateRenderStyle.transform = 'scale(-1, 1)';
+      }
+    },
+    'plateProperties.isPrintBSAU': function(val, oldVal) {
+      if (val == 0) {
+        this.$data.plateBSAUStyle.display = 'none';
+      }
+      else {
+        this.$data.plateBSAUStyle.display = 'block';
+      }
+    },
+    'activeStateAuditModal': function(val, oldVal) {
+      if (val == false) {
+        this.$data.isEntitlementCaptureComplete = false;
+        this.$data.isIdentityCaptureComplete = false;
+      }
     }
-    
-      
   },
   mounted() {
     this.$nextTick(function() {
@@ -1236,7 +1989,16 @@ export default {
       this.$data.supplierId = this.$route.params.supplierId;
     }
 
-    // load the plate sizes
+    // get the printer list
+    const printerList = getPrinterList();
+    printerList.forEach((printer) => {
+      this.$data.printers.push({value: printer.name, text: printer.name});
+    });
+
+    // get the user for permissions
+    this.$data.userObj = getCurrentUser();
+
+    // load the plate sizes and the default template
     getPlateSizes(this.$http)
       .then((plateSizes) => {
         this.$data.plateSizes = plateSizes;
@@ -1248,7 +2010,31 @@ export default {
           return plate;
         });
         this.$data.plateSizesLoaded = true;
+
+        return getCurrentUser(this.$http);
       })
+      .then((userDetails) => {
+        const userFilter = {
+          company_id: userDetails.company_id,
+          branch_id: userDetails.branch_id,
+          site_id: userDetails.site_id
+        };
+        return getTemplates(this.$http, userFilter);
+      })
+      .then((templateList) => {
+        let defaultTemplates = [];
+        defaultTemplates = templateList.filter((element) => {
+          return element.is_default == 1;
+        });
+        if (defaultTemplates.length > 0) {
+          this.$data.plateProperties.selectedTemplateId = defaultTemplates[0].value;
+          this.loadTemplate();
+        }
+      })
+      .catch ((err) => {
+        console.error(err);
+      });
+
   },
   beforeDestroy() {
     window.removeEventListener('resize', this.resizePlateOutput);
@@ -1257,40 +2043,86 @@ export default {
     this.resizePlateOutput();
   },
   computed: {
+    isSettingsAvailable: function() {
+      return this.userObj.auth != "Plate Printers" ? true : false;
+    },
     isBarcodeAvailable: function () {
       return this.$data.plateProperties.plateTextInput.length > 0 && this.$data.plateProperties.barcodeValue.length > 0;
     },
     hasTemplateBeenLoaded: function() {
       return this.$data.currentTemplateId > 0;
+    },
+    canPlateBePrinted: function() {
+      let returnVal = false;
+      if (this.$data.printJobRunning) {
+        returnVal = false;
+      }
+      else {
+        if (this.$data.plateProperties.plateWIPInput.length > 0) {
+          returnVal = true;
+        }
+        else {
+          if (this.$data.plateProperties.isRetailCustomerPrintConfirmed == 1) {
+            returnVal = true;
+          }
+          else {
+            returnVal = false;
+          }
+        }
+      }
+      return returnVal;
     }
   },
   methods: {
-    toggleImageCaptureModal() {
-      this.$data.activeStateImageCaptureModal = !this.$data.activeStateImageCaptureModal;
-      if (this.$data.activeStateImageCaptureModal) {
-        this.$data.captures.length = 0;
-        this.prepVideo();
+    toggleEntitlementImageCaptureModal() {
+      this.$data.activeStateEntitlementImageCaptureModal = !this.$data.activeStateEntitlementImageCaptureModal;
+      if (this.$data.activeStateEntitlementImageCaptureModal) {
+        this.$data.capturesEntitlement.length = 0;
+        this.prepEntitlementVideo();
       }
       else {
         this.$data.mediaStream.getTracks()[0].stop();
         this.$data.mediaStream.getVideoTracks()[0].stop();
         this.$data.mediaStream = null;
-        this.$refs.video.srcObject = null;
-          
+        this.$refs.videoEntitlement.srcObject = null;
       }
     },
-    async prepVideo() {
-        this.$data.mediaStream = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
-        console.log(this.$data.mediaStream);
-        this.$refs.video.srcObject = this.$data.mediaStream;
+    toggleIdentityImageCaptureModal() {
+      this.$data.activeStateIdentityImageCaptureModal = !this.$data.activeStateIdentityImageCaptureModal;
+      if (this.$data.activeStateIdentityImageCaptureModal) {
+        this.$data.capturesIdentity.length = 0;
+        this.prepIdentityVideo();
+      }
+      else {
+        this.$data.mediaStream.getTracks()[0].stop();
+        this.$data.mediaStream.getVideoTracks()[0].stop();
+        this.$data.mediaStream = null;
+        this.$refs.videoIdentity.srcObject = null;
+      }
     },
-    captureImage() {
+    async prepEntitlementVideo() {
+        this.$data.mediaStream = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
+        this.$refs.videoEntitlement.srcObject = this.$data.mediaStream;
+    },
+    async prepIdentityVideo() {
+        this.$data.mediaStream = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
+        this.$refs.videoIdentity.srcObject = this.$data.mediaStream;
+    },
+    captureEntitlementImage() {
         // this.canvas = this.$refs.canvas;
-        var context = this.$refs.canvas.getContext("2d").drawImage(this.$refs.video, 0, 0, 760, 600);
-        this.$data.captures.length = 0;
-        this.$data.captures.push({'id': new Date().getTime(), 'image': this.$refs.canvas.toDataURL("image/webp")});
+        var context = this.$refs.canvasEntitlement.getContext("2d").drawImage(this.$refs.videoEntitlement, 0, 0, 760, 600);
+        this.$data.capturesEntitlement.length = 0;
+        this.$data.capturesEntitlement.push({'id': new Date().getTime(), 'image': this.$refs.canvasEntitlement.toDataURL("image/webp")});
+        this.$data.isEntitlementCaptureComplete = true;
+        this.toggleEntitlementImageCaptureModal();
+    },
+    captureIdentityImage() {
+        // this.canvas = this.$refs.canvas;
+        var context = this.$refs.canvasIdentity.getContext("2d").drawImage(this.$refs.videoIdentity, 0, 0, 760, 600);
+        this.$data.capturesIdentity.length = 0;
+        this.$data.capturesIdentity.push({'id': new Date().getTime(), 'image': this.$refs.canvasIdentity.toDataURL("image/webp")});
         this.$data.isIdentityCaptureComplete = true;
-        this.toggleImageCaptureModal();
+        this.toggleIdentityImageCaptureModal();
     },
     onIdFile() {
         console.log('on Id file');
@@ -1371,6 +2203,38 @@ export default {
       //}
     },
     printPlate() {
+      // double check if we're still logged in and no timeout has happened..
+      try {
+        let user = JSON.parse(localStorage.getItem('user'));
+        if (user.token == null) {
+          this.$router.push('/pages/login');
+        }
+      }
+      catch (err) {
+        // anything wrong, then re-authenticate
+        this.$router.push('/pages/login');
+      }
+      // check to see if the plate exists first
+      checkPlateExists(this.$http, this.$data.plateProperties.plateTextInput)
+        .then((plateCount) => {
+          console.log("reg: ", plateCount);
+          if (plateCount > 0) {
+            this.$data.currentPlateReprint = true;
+            this.$data.activeStatePrintPlateModal = true;
+          }
+          else {
+            this.actualPrintPlate();
+          }
+        });
+    },
+    closePrintConfirmModalAndPrint() {
+      this.$data.activeStatePrintPlateModal = false;
+      this.actualPrintPlate();
+    },
+    actualPrintPlate() {
+
+      this.$data.printJobRunning = true;
+
       const content = {
         plateText: this.$data.plateProperties.plateTextInput,
         plateRaise: this.$data.plateProperties.plateRaiseInput,
@@ -1395,10 +2259,117 @@ export default {
         plateHeight: this.$data.platePrintStyleObject.heightActual
       };
       ipcRenderer.send("printPlateHandler", content);
+      //this.printBarcode();
+
+      this.$data.printJobRunning = false;
+
+      // save the printed plate for history and reporting
+      this.$data.plateSaveInProgress = true;
+      let headersObj = getHTTPHeaders();
+      // get the user info first
+      let user = JSON.parse(localStorage.getItem('user'));
+      let dataPostObject = {
+        plate: {
+          group_id: user.company_id,
+          branch_id: user.branch_id,
+          site_id: user.site_id,
+          registration_number: this.$data.plateProperties.plateTextInput,
+          raise_by_registration_number_in_mm: this.$data.plateProperties.plateRaiseInput,
+          plate_height: this.$data.platePrintStyleObject.heightActual,
+          plate_width: this.$data.platePrintStyleObject.widthActual,
+          slogan: this.$data.plateProperties.plateMessageInput,
+          slogan_font_size: this.$data.plateProperties.plateMessageFontSizeInput,
+          is_border: this.$data.plateProperties.isPrintBorder,
+          border_colour: this.$data.plateProperties.plateBorderColour,
+          border_width: this.$data.plateProperties.plateBorderWidth,
+          border_margin: this.$data.plateProperties.plateBorderMargin,
+          template_id: this.$data.currentTemplateId,
+          postcode: this.$data.plateProperties.platePostCodeInput,
+          postcode_position: this.$data.plateProperties.platePostCodePosition,
+          postcode_raise_by: this.$data.plateProperties.platePostCodeRaiseInput,
+          postcode_font_size: this.$data.plateProperties.platePostCodeFontSizeInput,
+          postcode_offset_by: this.$data.plateProperties.platePostCodeOffsetInput,
+          supplier_id: this.$data.supplierId,
+          printer_used: this.$data.platePrinterName,
+          supplier_wip_number: this.$data.plateProperties.plateWIPInput,
+          plate_code: this.$data.plateProperties.plateCode
+        }
+      }
+
+      this.$http.post('plates', {
+          plate: dataPostObject.plate
+        },
+        headersObj)
+        .then((response) => {
+          console.log(response.data);
+          if (response.data.success == true) {
+            this.$data.plateSaveInProgress = false;
+              
+          }
+          else {
+              // data error
+              this.$data.plateSaveInProgress = false;
+          }
+        })
+        .catch ((err) => {
+          console.error(err);
+          this.$data.plateSaveInProgress = false;
+          
+        });
+
+        this.$data.printJobRunning = false;
+
+    },
+    clearAllFields() {
+      // this is called when the 'New Template' button is clicked
+      this.$data.plateProperties.isTradeCustomerPrintConfirmed = 0;
+      this.$data.plateProperties.isRetailCustomerPrintConfirmed = 0;
+      this.$data.plateProperties.plateTextInput = '';
+      this.$data.plateProperties.plateRaiseInput = 0;
+      this.$data.plateProperties.plateMessageInput = '';
+      this.$data.plateProperties.plateMessageRaiseInput = 0;
+      this.$data.plateProperties.plateMessageOffsetInput = 0;
+      this.$data.plateProperties.plateMessageFontSizeInput = 5;
+      this.$data.plateProperties.plateMessageFont = 'Arial';
+      this.$data.plateProperties.isPlateMessageItalic = 0;
+      this.$data.plateProperties.platePostCodeInput = '';
+      this.$data.plateProperties.platePostCodeRaiseInput = 0;
+      this.$data.plateProperties.platePostCodePosition = 'Below';
+      this.$data.plateProperties.platePostCodeOffsetInput = 0;
+      this.$data.plateProperties.platePostCodeFontSizeInput = 3;
+      this.$data.plateProperties.platePostCodeFont = 'Arial';
+      this.$data.plateProperties.isPostCodeItalic = 0;
+      this.$data.plateProperties.plateBSAUInput = '';
+      this.$data.plateProperties.plateBSAURaiseInput = 0;
+      this.$data.plateProperties.plateBSAUOffsetInput = 0;
+      this.$data.plateProperties.plateBSAUFontSizeInput = 3;
+      this.$data.plateProperties.isPrintBorder = 0;
+      this.$data.plateProperties.plateBorderMargin = 7;
+      this.$data.plateProperties.plateBorderWidth = 2;
+      this.$data.plateProperties.plateBorderColour = '';
+      this.$data.plateProperties.isPrintMarque = 0;
+      this.$data.plateProperties.plateMarqueWidth = 0;
+      this.$data.plateProperties.isMirror = 0;
+      this.$data.plateProperties.templateName = '';
+      this.$data.plateProperties.selectedTemplateId = 0;
+      this.$data.plateProperties.isDefaultTemplate = 0;
+      this.$data.plateProperties.barcodeValue = '';
+      this.$data.plateProperties.plateSelectedSize = 1;
+      this.$data.plateProperties.plateLogo = '';
+      this.$data.plateProperties.isPrintBSAU = 0;
+      this.$data.plateProperties.plateTextLines = 1;
+      this.$data.plateProperties.plateTextLineGap = 0;
+      this.$data.plateProperties.plateArtworkImage = '';
+      this.$data.plateProperties.plateArtworkRaise = 0;
+      this.$data.plateProperties.plateArtworkOffset = 0;
+      this.$data.plateProperties.plateArtworkSize = 7;
+      this.$data.plateProperties.plateWIPInput = '';
+      this.$data.plateProperties.isBarcodePrint = 0;
     },
     printBarcode() {
       const content = {
-        barcodeValue: this.$data.plateProperties.barcodeValue
+        barcodeValue: this.$data.plateProperties.barcodeValue,
+        regNumber: this.$data.plateProperties.plateTextInput
       };
       ipcRenderer.send("printBarcodeHandler", content);
     },
@@ -1411,8 +2382,6 @@ export default {
       let headersObj = getHTTPHeaders();
       // get the user info first
       let user = JSON.parse(localStorage.getItem('user'));
-      console.log(headersObj);
-      console.log(user);
       let dataPostObject = {
         template: {
           group_id: user.company_id,
@@ -1423,6 +2392,8 @@ export default {
           plate_height: this.$data.platePrintStyleObject.heightActual,
           plate_width: this.$data.platePrintStyleObject.widthActual,
           slogan: this.$data.plateProperties.plateMessageInput,
+          slogan_font_size: this.$data.plateProperties.plateMessageFontSizeInput,
+          slogan_raise_by: this.$data.plateProperties.plateMessageRaiseInput,
           is_border: this.$data.plateProperties.isPrintBorder,
           border_colour: this.$data.plateProperties.plateBorderColour,
           border_width: this.$data.plateProperties.plateBorderWidth,
@@ -1432,7 +2403,10 @@ export default {
           postcode_raise_by: this.$data.plateProperties.platePostCodeRaiseInput,
           postcode_font_size: this.$data.plateProperties.platePostCodeFontSizeInput,
           postcode_offset_by: this.$data.plateProperties.platePostCodeOffsetInput,
-          supplier_id: this.$data.supplierId
+          supplier_id: this.$data.supplierId,
+          is_bsau_mark: this.$data.plateProperties.isPrintBSAU,
+          is_bsau_text: 0,
+          is_default: this.$data.plateProperties.isDefaultTemplate
         }
       }
       if (this.hasTemplateBeenLoaded) {
@@ -1491,7 +2465,13 @@ export default {
           return getTemplates(this.$http, userFilter);
         })
         .then((templateList) => {
-          this.$data.loadedTemplates = templateList;
+          this.$data.loadedTemplates = templateList.map((element) => {
+            let templateItem = {
+              value: element.value,
+              text: element.text
+            }
+            return templateItem;
+          });
           this.$data.templatesLoaded = true;
         })
         .catch ((err) => {
@@ -1504,6 +2484,7 @@ export default {
       getTemplate(this.$http, this.$data.plateProperties.selectedTemplateId)
         .then((template) => {
           // populate the state data
+          console.log(template);
           this.$data.plateProperties.plateTextInput = template.registration_number;
           this.$data.plateProperties.plateRaiseInput = template.raise_by_registration_number_in_mm;
           this.$data.plateProperties.plateMessageInput = template.slogan;
@@ -1511,9 +2492,10 @@ export default {
           this.$data.plateProperties.plateMessageFontSizeInput = template.slogan_font_size;
           this.$data.plateProperties.platePostCodeInput = template.postcode;
           this.$data.plateProperties.platePostCodeRaiseInput = template.postcode_raise_by;
-          this.$data.plateProperties.plateBSAUInput = '';
+          this.$data.plateProperties.isPrintBSAU = template.is_bsau_mark;
+          this.$data.plateProperties.plateBSAUInput = template.is_bsau_text;
           this.$data.plateProperties.plateBSAURaiseInput = 0;
-          this.$data.plateProperties.plateBSAUFontSizeInput = 0;
+          this.$data.plateProperties.plateBSAUFontSizeInput = 3;
           this.$data.plateProperties.isPrintBorder = template.is_border;
           this.$data.plateProperties.plateBorderMargin = template.border_margin;
           this.$data.plateProperties.plateBorderWidth = template.border_width;
@@ -1526,6 +2508,9 @@ export default {
           this.$data.currentTemplateId = template.template_id;
           this.$data.plateProperties.selectedTemplateId = template.template_id;
           this.$data.plateProperties.barcodeValue = '';
+          this.$data.supplierId = template.supplier_id;
+          this.$data.plateProperties.isBarcodePrint = template.is_barcode_print;
+          
         })
         .catch ((err) => {
           console.error(err);
@@ -1538,6 +2523,8 @@ export default {
     toggleAuditEntryModal() {
       this.$data.activeStateAuditModal = !this.$data.activeStateAuditModal;
       // now load the lookup data needed
+      this.loadTradeCustomer();
+
       getContactTitles(this.$http)
         .then((titlesList) => {
             this.$data.contactTitles = titlesList;
@@ -1577,131 +2564,162 @@ export default {
     },
     saveRetailCustomer() {
 
+    },
+    loadTradeCustomer() {
+      getSuppliers(this.$http)
+        .then((response) => {
+          let tradeCustomers = [];
+          tradeCustomers = response.filter((element) => {
+            return element.id == this.$data.supplierId;
+          });
+          this.$data.currentTradeCustomer.supplierName = tradeCustomers[0].supplier_name;
+          this.$data.currentTradeCustomer.dvlaLicCode = tradeCustomers[0].dvla_lic_code;
+          this.$data.currentTradeCustomerLoaded = true;
+        })
+        .catch ((err) => {
+            console.error(err);
+        });
     }
   }
 }
 </script>
 
 <style>
-  @font-face {
-      font-family: 'Charles';
-      src: url('../assets/fonts/SAPUK.TTF')  format('truetype');
-  }
-  h6 {
-    text-decoration: underline;
-    
-    margin-top: 0.5rem;
-  }
-  p.button-area button {
-    margin-right: 0.5rem;
-  }
-  div#platePrintAreaOuter {
-    border-radius: 30px;
-    display: inline-block;
-    background-color: rgb(247, 209, 74);
-    transform-origin: top left;
-    text-align: center;
-    overflow: visible;
-  }
-  div#platePrintArea {
-      border-radius: 30px;
-      width: 100%;
-      height: 100%;
-  }
-  div#marque {
-      float: left;
-      width: 45mm;
-      text-align: center;
-      padding: 4mm;
-      background-color: blue;
-      border-top-left-radius: 30px;
-      border-bottom-left-radius: 30px;
-      height: 111mm;
-      position: absolute;
-      left: 0;
-      top: 0;
-      z-index: -1;
-      display: none;
-  }
-  div#marque img {
-      float: left;
-      width: 100%;
-      display: block;
-      padding-top: 10mm;
-  }
-  div#marque span#marque-slogan {
-      display: inline-block;
-      position: inherit;
-      text-transform: uppercase;
-      font-family: 'Charles';
-      font-size: 25mm;
-      color: rgb(247, 209, 74);
-      position: relative;
-      padding-top: 8mm;
-  }
-  div#platePrintArea div#plateRender {
-      font-size: 100mm;
-      display: inline-block;
-      line-height: 0.857;
-      text-transform: uppercase;
-      font-family: 'Charles';
-      height: 100%;
-      text-align: center;
-  }
-  div#platePrintArea div.slogan {
-      line-height: 1;
-      font-size: 7mm;
-      z-index: 1000;
-      background-color: rgb(247, 209, 74);
-  }
-  div#platePrintArea div#sloganMessage {
-      position: absolute;
-      left: 0;
-      right: 0;
-      width: max-content;
-      margin: auto;
-      bottom: 3mm;
-      padding-left: 2mm;
-      padding-right: 2mm;
-  }
-  div#platePrintArea div#sloganPostcode {
-      position: absolute;
-      left: 0;
-      right: 0;
-      width: max-content;
-      margin: auto;
-      bottom: 3mm;
-      padding-left: 2mm;
-      padding-right: 2mm;
-  }
-  div#platePrintArea div#bsau {
-      position: absolute;
-      right: 11mm;
-      width: max-content;
-      bottom: 1mm;
-      padding-left: 2mm;
-      padding-right: 2mm;
-      font-size: 5mm
-  }
-  p.toolbar button {
-    margin-right: 5px;
-  }
-  .toolbar-template-name {
-    text-align: right;
-  }
-  span.template-name {
-    font-weight: bold;
-  }
-  .uppercase {
-    text-transform: uppercase;
-  }
-  div.barcode-container svg {
-    min-width: 100%;
-  }
-  span.upload-switch {
-    cursor: pointer;
-  }
-  .image-upload-hidden {
-    display: none;
-  }
+@font-face {
+  font-family: "Charles";
+  src: url("../assets/fonts/SAPUK.TTF") format("truetype");
+  
+  /*src: url('../assets/fonts/UKNumberPlate.ttf')  format('truetype');*/
+  /*src: url('../assets/fonts/UKReg.ttf')  format('truetype');*/
+  /*src: url('../assets/fonts/CharlesWright-Bold.ttf')  format('truetype');*/
+  /*src: url('../assets/fonts/bsau145d.ttf')  format('truetype');*/
+  /*src: url('../assets/fonts/New-Charles-Wright.ttf')  format('truetype');*/
+  
+}
+h6 {
+  text-decoration: underline;
+
+  margin-top: 0.5rem;
+}
+p.button-area button {
+  margin-right: 0.5rem;
+}
+div#platePrintAreaOuter {
+  border-radius: 30px;
+  display: inline-block;
+  background-color: rgb(247, 209, 74);
+  transform-origin: top left;
+  text-align: center;
+  overflow: visible;
+}
+div#platePrintArea {
+  border-radius: 30px;
+  width: 100%;
+  height: 100%;
+}
+div#marque {
+  float: left;
+  width: 45mm;
+  text-align: center;
+  padding: 4mm;
+  background-color: blue;
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
+  height: 111mm;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  display: none;
+}
+div#marque img {
+  float: left;
+  width: 100%;
+  display: block;
+  padding-top: 10mm;
+}
+div#marque span#marque-slogan {
+  display: inline-block;
+  position: inherit;
+  text-transform: uppercase;
+  font-family: "Charles";
+  font-size: 25mm;
+  color: rgb(247, 209, 74);
+  position: relative;
+  padding-top: 8mm;
+}
+div#platePrintArea div#plateRender {
+  font-size: 100mm;
+  display: inline-block;
+  line-height: 0.857;
+  text-transform: uppercase;
+  font-family: "Charles";
+  height: 100%;
+  text-align: center;
+}
+div#platePrintArea div.slogan {
+  line-height: 1;
+  font-size: 7mm;
+  z-index: 1000;
+  background-color: rgb(247, 209, 74);
+}
+div#platePrintArea div#plateFooter {
+  position: absolute;
+  /*display: flex;*/
+  left: 0;
+  right: 0;
+  width: max-content;
+  margin: auto;
+  bottom: 0mm;
+  padding-left: 2mm;
+  padding-right: 2mm;
+}
+div#platePrintArea div#sloganMessage {
+  width: max-content;
+  position: relative;
+  background-color:  ;
+  padding-left: 2mm;
+  padding-right: 2mm;
+}
+div#platePrintArea div#sloganPostcode {
+  position: relative;
+  left: 0;
+  right: 0;
+  width: max-content;
+  margin: auto;
+  bottom: 0mm;
+  background-color: rgb(247, 209, 74);
+  padding-left: 1mm;
+  padding-right: 1mm;
+}
+div#platePrintArea div#bsau {
+  position: absolute;
+  right: 11mm;
+  width: max-content;
+  bottom: 1mm;
+  padding-left: 1mm;
+  padding-right: 1mm;
+  background-color: rgb(247, 209, 74);
+}
+p.toolbar button {
+  margin-right: 5px;
+}
+.toolbar-template-name {
+  text-align: right;
+}
+span.template-name {
+  font-weight: bold;
+}
+.uppercase {
+  text-transform: uppercase;
+}
+div.barcode-container svg {
+  min-width: 100%;
+}
+span.upload-switch {
+  cursor: pointer;
+}
+.image-upload-hidden {
+  display: none;
+}
 </style>

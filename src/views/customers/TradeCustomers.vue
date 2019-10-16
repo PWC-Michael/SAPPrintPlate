@@ -795,6 +795,15 @@ export default {
         this.$data.newCustomer = customer[0];
         console.log(customer[0]);
 
+        this.$data.newContact.first_name = this.$data.newCustomer.contacts[0].first_name;
+        this.$data.newContact.last_name = this.$data.newCustomer.contacts[0].last_name;
+        this.$data.newContact.title_id = this.$data.newCustomer.contacts[0].title_id;
+        this.$data.newContact.email = this.$data.newCustomer.contacts[0].email;
+        this.$data.newContact.phone_number = this.$data.newCustomer.contacts[0].phone_number;
+        this.$data.newContact.opt_in_marketing = this.$data.newCustomer.contacts[0].opt_in_marketing;
+        this.$data.newContact.opt_in_research = this.$data.newCustomer.contacts[0].opt_in_research;
+        this.$data.newContact.opt_in_anonymously = this.$data.newCustomer.contacts[0].opt_in_anonymously;
+
     },
     getHTTPHeaders() {
         let headerConfig = {

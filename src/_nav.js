@@ -1,9 +1,9 @@
 export default {
   items: [
     {
-      name: 'Designer',
+      name: 'Home',
       url: '/mainDesigner',
-      icon: 'fa fa-pencil-square-o',
+      icon: 'fa fa-home',
       auth: [
         'SuperAdministrators',
         'CompanyUsers',
@@ -15,8 +15,8 @@ export default {
       title: true,
       name: 'Activity',
     },
-    {
-      name: 'Jobs',
+    /*{
+      name: 'Batch Printing',
       url: '/jobs',
       icon: 'fa fa-tasks',
       auth: [
@@ -24,7 +24,7 @@ export default {
         'CompanyUsers',
         'SiteUsers'
       ]
-    },
+    },*/
     {
       name: 'Plate Templates',
       url: '/templates',
@@ -46,15 +46,17 @@ export default {
       ]
     },
     {
-      name: 'Retail Customers',
-      url: '/retail-customers',
-      icon: 'fa fa-shopping-basket',
+      name: 'Reg Lookup',
+      url: '/regreport',
+      icon: 'fa fa-bar-chart',
       auth: [
         'SuperAdministrators',
         'CompanyUsers',
-        'SiteUsers'
+        'SiteUsers',
+        'PrintUsers'
       ]
     },
+    /*
     {
       title: true,
       name: 'Support',
@@ -89,6 +91,7 @@ export default {
         'SiteUsers'
       ]
     },
+    */
 
     /*
     {

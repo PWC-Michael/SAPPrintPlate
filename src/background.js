@@ -11,6 +11,10 @@ const url = require('url');
 const fs = require('fs');
 const electron = require('electron');
 const shell = electron.shell;
+const ch = require('os');
+const child = require('child_process');
+const log = require('electron-log');
+
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -21,7 +25,23 @@ let barcodePrintWindow;
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: { secure: true, standard: true } }])
 
+
+log.transports.file.level = 'info';
+log.transports.file.fileName = 'sap-log.log';
+
+let exePath = '';
+if (!isDevelopment) {
+  exePath = app.getPath('exe');
+  exePath = exePath.substr(0, exePath.length - 22);
+}
+else {
+  exePath = __dirname + "/";
+}
+log.info("Actual Path should be: ",  exePath);
+
+
 function createWindow () {
+
   // Create the browser window.
   win = new BrowserWindow({ width: 1200, height: 1000, webPreferences: {
     nodeIntegration: true
@@ -39,7 +59,11 @@ function createWindow () {
   }
 
   win.on('closed', () => {
-    win = null
+    win = null,
+    printWindow = null,
+    barcodePrintWindow = null;
+
+    app.quit();
   })
 }
 
@@ -48,6 +72,7 @@ app.on('window-all-closed', () => {
   // On macOS it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
   if (process.platform !== 'darwin') {
+    console.log("Quitting..");
     app.quit()
   }
 })
@@ -67,10 +92,10 @@ app.on('ready', async () => {
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {
-  await installVueDevtools()
-} catch (e) {
-  console.error('Vue Devtools failed to install:', e.toString())
-}
+      await installVueDevtools()
+    } catch (e) {
+      console.error('Vue Devtools failed to install:', e.toString())
+    }
 
   }
   createWindow()
@@ -95,8 +120,8 @@ if (isDevelopment) {
 //// Printing bits
 ipcMain.on('plate:print', function(event, plateObject) {
   const printOptions = {
-      deviceName: 'TSC TTP-247',
-      silent: true
+    deviceName: 'TSC TTP-247',
+    silent: true
   };
   mainWindow.webContents.print(printOptions);
 
@@ -117,18 +142,18 @@ ipcMain.on("sendPlateToPrinterHandler", function(event) {
   */
   
   //alert('This is when the plate will be printed. This is for the demo purposes only.');
+  /*
   const printOptions = {
     printBackground: false,
     silent: false
   };
   printWindow.webContents.print(printOptions);
-  
+  */
 
-  /*
   let pdfSettings = function() {
     var pageSize = {
       height: 111000,
-      width: 530000
+      width: 520000
     };
     var option = {
         landscape: true,
@@ -139,9 +164,11 @@ ipcMain.on("sendPlateToPrinterHandler", function(event) {
     };
     return option;
   }
+  
 
   console.log('Ok...pdf it');
-  var pdfPath = path.join(__dirname, '/print.pdf');
+  var pdfPath = path.join(exePath, 'print.pdf');
+  var runPDFPath = path.join(exePath, 'SumatraPDF.exe');
   console.log(pdfPath);
   const pdfSettingsObj = pdfSettings();
 
@@ -156,6 +183,14 @@ ipcMain.on("sendPlateToPrinterHandler", function(event) {
   
       try {
         fs.writeFileSync(pdfPath, data);
+        setTimeout(function() {
+          child.exec(runPDFPath +' -print-to "TSC TTP-247" -print-settings "1, fit" ' + pdfPath, function() {
+            console.log("Should have printed");
+            console.log(runPDFPath +' -print-to "TSC TTP-247" -print-settings "1,fit,monochrome" -print-dialog -exit-when-done ' + pdfPath);
+          }, function(e) {
+            console.log(e);
+          });
+        }, 1000);
       }
       catch(errord) {
         console.log("Tried but: ", errord)
@@ -165,20 +200,19 @@ ipcMain.on("sendPlateToPrinterHandler", function(event) {
   catch (printError) {
     console.log("print but: ", printError)
   }
-  */
   
 });
 
 ipcMain.on("printPlateHandler", function(event, content) {
   printWindow = new BrowserWindow({
-    show: true,
+    show: false,
     webPreferences: {
       nodeIntegration: true
     }
   });
   
   printWindow.loadURL(url.format({
-      pathname: path.join(__dirname, 'platePrint.html'),
+      pathname: path.join(exePath, 'platePrint.html'),
       protocol: 'file:',
       slashes: true
   }));
@@ -194,7 +228,7 @@ ipcMain.on("printPlateHandler", function(event, content) {
 ///// Barcode printing
 ipcMain.on("printBarcodeHandler", function(event, content) {
   barcodePrintWindow = new BrowserWindow({
-    show: true,
+    show: false,
     webPreferences: {
       nodeIntegration: true
     }
@@ -228,10 +262,57 @@ ipcMain.on("sendBarcodeToPrinterHandler", function(event) {
   });
   */
   //alert('This is when the plate will be printed. This is for the demo purposes only.');
-  const printOptions = {
+  /*const printOptions = {
     printBackground: false,
     silent: false
   };
   barcodePrintWindow.webContents.print(printOptions);
+  */
+  let pdfSettings = function() {
+    var pageSize = {
+      height: 30000,
+      width: 45000
+    };
+    var option = {
+        landscape: true,
+        marginsType: 2,
+        printBackground: false,
+        printSelectionOnly: false,
+        pageSize: pageSize
+    };
+    return option;
+  };
+
+  var pdfPath = path.join(__dirname, '/barcode.pdf');
+  var runPDFPath = path.join(__dirname, '/SumatraPDF.exe');
+
+  const pdfSettingsObj = pdfSettings();
+
+  try {
+    barcodePrintWindow.webContents.printToPDF(pdfSettingsObj, function(err, data) {
+      console.log('Ok...');
+      console.log(data);
+      if (err) {
+        console.log(err);
+        return;
+      }
   
+      try {
+        fs.writeFileSync(pdfPath, data);
+        setTimeout(function() {
+          child.exec(runPDFPath +' -print-to "CITIZEN CL-E321" -print-settings "1, noscale" ' + pdfPath, function() {
+            console.log("Should have printed");
+          }, function(e) {
+            console.log(e);
+          });
+        }, 2000);
+      }
+      catch(errord) {
+        console.log("Tried but: ", errord)
+      }
+    });
+  }
+  catch (printError) {
+    console.log("print but: ", printError)
+  }
 });

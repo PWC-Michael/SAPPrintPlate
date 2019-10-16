@@ -190,7 +190,7 @@ let router = new Router({
           }
         },
         {
-          path: 'regreport/:reg',
+          path: 'regreport',
           name: 'Registration Report',
           component: RegReport,
           meta: {

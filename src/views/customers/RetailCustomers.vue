@@ -17,15 +17,6 @@
                         </div>
                         <div v-if="customersLoaded" class="form-container">
                             <b-row>
-                                <b-col cols="12" sm="12" md="6">
-                                    <p>
-                                        <b-button v-on:click="enterAddMode" variant="primary">
-                                            <i class="fa fa-plus"></i>&nbsp;Add Retail Customer
-                                        </b-button>
-                                    </p>
-                                </b-col>
-                            </b-row>
-                            <b-row>
                                 <b-col cols="12">
                                     <div id="customer-list">
                                         <c-table :table-data="customerItems" :fields="tableFields" bordered caption="All Retail Customers"></c-table>
