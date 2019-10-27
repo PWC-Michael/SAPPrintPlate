@@ -1,6 +1,6 @@
 {
   "name": "sap-plate-printing",
-  "version": "0.0.3",
+  "version": "0.0.6",
   "description": "The number plate printing admin web app",
   "author": "Planet Wide City",
   "scripts": {

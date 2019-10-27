@@ -200,30 +200,6 @@
                                         </div>
                                     </b-form-group>
                                 </b-col>
-                                <b-col sm="3">
-                                    <b-form-group>
-                                        <label for="contactTitle">Trade Type</label>
-                                        <b-form-select id="contactTitle" v-if="contactTitlesLoaded"  v-model="newContact.title_id"
-                                            :plain="true"
-                                            :options="contactTitles">
-                                        </b-form-select>
-                                        <div v-if="!contactTitlesLoaded" >
-                                            <i class="fa fa-spin fa-spinner"></i>
-                                        </div>
-                                    </b-form-group>
-                                </b-col>
-                                <b-col sm="3">
-                                    <b-form-group>
-                                        <label for="contactTitle">Franchise Type</label>
-                                        <b-form-select id="contactTitle" v-if="contactTitlesLoaded"  v-model="newContact.title_id"
-                                            :plain="true"
-                                            :options="contactTitles">
-                                        </b-form-select>
-                                        <div v-if="!contactTitlesLoaded" >
-                                            <i class="fa fa-spin fa-spinner"></i>
-                                        </div>
-                                    </b-form-group>
-                                </b-col>
                             </b-row>
                         </div>
                     </b-card>
@@ -809,7 +785,7 @@ export default {
         let headerConfig = {
             headers: {
                 'Content-Type': 'application/json;charset=UTF-8',
-                'AuthHeader': this.$data.userObj.token,
+                'Authorization': this.$data.userObj.token,
             }
         }
         return headerConfig;
@@ -920,95 +896,102 @@ export default {
         this.$data.saveInProgress = true;
         let headersObj = this.getHTTPHeaders();
 
-        let dataPostObject = {
-            supplier: {
-                name: this.$data.newCustomer.supplier_name,
-                short: this.$data.newCustomer.short_name,
-                branch: this.$data.userObj.branch_id,
-                site: this.$data.userObj.site_id,
-                website: this.$data.newCustomer.website,
-                status: this.$data.newCustomer.status_id,
-                dvlaLicCode: this.$data.newCustomer.dvla_lic_code,
-                dvlaConfirmed: this.$data.newCustomer.dvla_confirmed,
-                code: this.$data.newCustomer.supplier_code
-            },
-            address: {
-                default: this.$data.newAddress.is_default_delivery_address,
-                property: this.$data.newAddress.property_number,
-                address1: this.$data.newAddress.address1,
-                address2: this.$data.newAddress.address2,
-                address3: this.$data.newAddress.address3,
-                address4: this.$data.newAddress.address4,
-                street: this.$data.newAddress.street,
-                town: this.$data.newAddress.town,
-                postcode: this.$data.newAddress.post_code,
-                county: this.$data.newAddress.county_id,
-                country: this.$data.newAddress.country_id,
-                company: this.$data.newAddress.company_id,
-                group: this.$data.newAddress.group_id,
-                branch: this.$data.newCustomer.branch_id,
-                site: this.$data.newCustomer.site_id,
-                telephone: this.$data.newAddress.telephone_number,
-                invoiceAddress: this.$data.newAddress.is_invoice_address,
-                addressCategory: this.$data.newAddress.address_category_id,
-                addressType: this.$data.newAddress.address_type_id
-            },
-            contact: {
-                first: this.$data.newContact.first_name,
-                last: this.$data.newContact.last_name,
-                title: this.$data.newContact.title_id,
-                phone: this.$data.newContact.phone_number,
-                mobile: this.$data.newContact.mobile_number,
-                email: this.$data.newContact.email,
-                company: this.$data.newCustomer.company_name,
-                contactType: this.$data.newContact.contact_type_id,
-                contactCategory: this.$data.newContact.contact_category_id,
-                contactMethod: this.$data.newContact.contact_method_id,
-                contactRole:this.$data.newContact.contact_role_id,
-                optInMarketing: this.$data.newContact.opt_in_marketing,
-                optInResearch: this.$data.newContact.opt_in_research,
-                optInAnonymously: this.$data.newContact.opt_in_anonymously,
-                group: this.$data.newContact.group_id,
-                branch: this.$data.newCustomer.branch_id,
-                site: this.$data.newCustomer.site_id,
-                is_active: true
-            }
-        }
-
-        // do the conditional bits...
-        if (this.$data.newCustomer.dvla_confirmed) {
-            this.$data.newCustomer.dvla_confirmed_date = Date.now();
-            this.$data.newCustomer.dvla_confirmed_by = this.$data.userObj.userId;
-        }
-
-        
-        // first, save the customer
-        this.$http.post('suppliers/bulk', {
-            supplier: dataPostObject.supplier,
-            address: dataPostObject.address,
-            contact: dataPostObject.contact
-        },
-        headersObj)
-        .then((response) => {
-            console.log(response.data);
-            if (response.data.success == true) {
-                this.$data.saveInProgress = false;
-                this.$data.saveError = false;
-                if (!this.$data.editMode) {
-                    this.$router.push({ name: 'MainDesigner', params: { tcsetup: true, supplierId: response.data.supplier.id } });
+        getCurrentUser()
+        .then((userDetails) => {
+            console.log('User: ', userDetails);
+            let dataPostObject = {
+                supplier: {
+                    name: this.$data.newCustomer.supplier_name,
+                    short: this.$data.newCustomer.short_name,
+                    company: userDetails.company_id,
+                    branch: userDetails.branch_id,
+                    site: userDetails.site_id,
+                    website: this.$data.newCustomer.website,
+                    status: this.$data.newCustomer.status_id,
+                    dvlaLicCode: this.$data.newCustomer.dvla_lic_code,
+                    dvlaConfirmed: this.$data.newCustomer.dvla_confirmed,
+                    code: this.$data.newCustomer.supplier_code
+                },
+                address: {
+                    default: this.$data.newAddress.is_default_delivery_address,
+                    property: this.$data.newAddress.property_number,
+                    address1: this.$data.newAddress.address1,
+                    address2: this.$data.newAddress.address2,
+                    address3: this.$data.newAddress.address3,
+                    address4: this.$data.newAddress.address4,
+                    street: this.$data.newAddress.street,
+                    town: this.$data.newAddress.town,
+                    postcode: this.$data.newAddress.post_code,
+                    county: this.$data.newAddress.county_id,
+                    country: this.$data.newAddress.country_id,
+                    company: this.$data.newAddress.company_id,
+                    group: this.$data.newAddress.group_id,
+                    branch: this.$data.newCustomer.branch_id,
+                    site: this.$data.newCustomer.site_id,
+                    telephone: this.$data.newAddress.telephone_number,
+                    invoiceAddress: this.$data.newAddress.is_invoice_address,
+                    addressCategory: this.$data.newAddress.address_category_id,
+                    addressType: this.$data.newAddress.address_type_id
+                },
+                contact: {
+                    first: this.$data.newContact.first_name,
+                    last: this.$data.newContact.last_name,
+                    title: this.$data.newContact.title_id,
+                    phone: this.$data.newContact.phone_number,
+                    mobile: this.$data.newContact.mobile_number,
+                    email: this.$data.newContact.email,
+                    company: this.$data.newCustomer.company_name,
+                    contactType: this.$data.newContact.contact_type_id,
+                    contactCategory: this.$data.newContact.contact_category_id,
+                    contactMethod: this.$data.newContact.contact_method_id,
+                    contactRole:this.$data.newContact.contact_role_id,
+                    optInMarketing: this.$data.newContact.opt_in_marketing,
+                    optInResearch: this.$data.newContact.opt_in_research,
+                    optInAnonymously: this.$data.newContact.opt_in_anonymously,
+                    group: this.$data.newContact.group_id,
+                    branch: this.$data.newCustomer.branch_id,
+                    site: this.$data.newCustomer.site_id,
+                    is_active: true
                 }
             }
-            else {
-                // data error
+
+            // do the conditional bits...
+            if (this.$data.newCustomer.dvla_confirmed) {
+                this.$data.newCustomer.dvla_confirmed_date = Date.now();
+                this.$data.newCustomer.dvla_confirmed_by = this.$data.userObj.userId;
+            }
+
+            
+            // first, save the customer
+            this.$http.post('suppliers/bulk', {
+                supplier: dataPostObject.supplier,
+                address: dataPostObject.address,
+                contact: dataPostObject.contact
+            },
+            headersObj)
+            .then((response) => {
+                console.log(response.data);
+                if (response.data.success == true) {
+                    this.$data.saveInProgress = false;
+                    this.$data.saveError = false;
+                    if (!this.$data.editMode) {
+                        this.$router.push({ name: 'MainDesigner', params: { tcsetup: true, supplierId: response.data.supplier.id } });
+                    }
+                }
+                else {
+                    // data error
+                    this.$data.saveInProgress = false;
+                    this.$data.saveError = true;
+                }
+            })
+            .catch ((err) => {
+                console.error(err);
                 this.$data.saveInProgress = false;
                 this.$data.saveError = true;
-            }
-        })
-        .catch ((err) => {
-            console.error(err);
-            this.$data.saveInProgress = false;
-            this.$data.saveError = true;
+            });
         });
+
+        
         
     },
     updateCustomer() {

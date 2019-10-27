@@ -13,7 +13,7 @@
             <b-button v-on:click="toggleSaveTemplateModal" variant="secondary">
               <i class="fa fa-floppy-o"></i>&nbsp;Save Template
             </b-button>
-            <b-button v-on:click="toggleAuditEntryModal" variant="warning">
+            <b-button v-on:click="toggleAuditEntryModal" variant="warning" disabled="true">
               <i class="fa fa-clone"></i>&nbsp;Retail Customers
             </b-button>
           </p>
@@ -1426,6 +1426,20 @@ const getCurrentUser = () => {
     });
 }
 
+const getDefaultTemplate = (($http, siteId) => {
+    return new Promise((resolve, reject) => {
+        let headersObj = getHTTPHeaders();
+        $http.get('getDefaultTemplate?site_id=' + siteId, headersObj)
+            .then((response) => {
+                resolve(response.data.template[0]);
+            })
+            .catch ((err) => {
+                console.error(err);
+                reject(err);
+            });
+    });
+});
+
 const getTemplates = (($http, filterObj) => {
     return new Promise((resolve, reject) => {
         let headersObj = getHTTPHeaders();
@@ -1996,7 +2010,10 @@ export default {
     });
 
     // get the user for permissions
-    this.$data.userObj = getCurrentUser();
+    getCurrentUser()
+      .then((data) => {
+        this.$data.userObj = data;
+      });
 
     // load the plate sizes and the default template
     getPlateSizes(this.$http)
@@ -2019,17 +2036,7 @@ export default {
           branch_id: userDetails.branch_id,
           site_id: userDetails.site_id
         };
-        return getTemplates(this.$http, userFilter);
-      })
-      .then((templateList) => {
-        let defaultTemplates = [];
-        defaultTemplates = templateList.filter((element) => {
-          return element.is_default == 1;
-        });
-        if (defaultTemplates.length > 0) {
-          this.$data.plateProperties.selectedTemplateId = defaultTemplates[0].value;
-          this.loadTemplate();
-        }
+        this.loadTemplate(userFilter.site_id);
       })
       .catch ((err) => {
         console.error(err);
@@ -2365,6 +2372,10 @@ export default {
       this.$data.plateProperties.plateArtworkSize = 7;
       this.$data.plateProperties.plateWIPInput = '';
       this.$data.plateProperties.isBarcodePrint = 0;
+
+      // now re-populate the template
+      console.log('User: ', this.$data.userObj);
+      this.loadTemplate(this.$data.userObj.site_id);
     },
     printBarcode() {
       const content = {
@@ -2478,13 +2489,14 @@ export default {
           console.error(err);
         });
     },
-    loadTemplate() {
+    loadTemplate(siteId) {
       //console.log("id: ", this.$data.plateProperties.selectedTemplateId);
       //console.log("computed: ", this.hasTemplateBeenLoaded);
-      getTemplate(this.$http, this.$data.plateProperties.selectedTemplateId)
+      getDefaultTemplate(this.$http, siteId)
+      //getTemplate(this.$http, this.$data.plateProperties.selectedTemplateId)
         .then((template) => {
           // populate the state data
-          console.log(template);
+          console.log('Default template: ', template);
           this.$data.plateProperties.plateTextInput = template.registration_number;
           this.$data.plateProperties.plateRaiseInput = template.raise_by_registration_number_in_mm;
           this.$data.plateProperties.plateMessageInput = template.slogan;
@@ -2500,7 +2512,7 @@ export default {
           this.$data.plateProperties.plateBorderMargin = template.border_margin;
           this.$data.plateProperties.plateBorderWidth = template.border_width;
           this.$data.plateProperties.plateBorderColour = template.border_colour;
-          this.$data.plateProperties.isPrintMarque = false;
+          this.$data.plateProperties.isPrintMarque = template.is_marque;
           this.$data.plateProperties.plateMarqueWidth = 0;
           this.$data.plateProperties.isMirror = 0;
           this.$data.plateProperties.templateName = template.template_name;
@@ -2677,7 +2689,7 @@ div#platePrintArea div#plateFooter {
 div#platePrintArea div#sloganMessage {
   width: max-content;
   position: relative;
-  background-color:  ;
+  /*background-color:  ;*/
   padding-left: 2mm;
   padding-right: 2mm;
 }
