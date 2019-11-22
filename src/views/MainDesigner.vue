@@ -2,7 +2,7 @@
   <div class="animated fadeIn">
     <div class="viewMode">
       <b-row v-if="!isFromTC">
-        <b-col sm="5">
+        <b-col sm="8">
           <p class="toolbar">
             <b-button v-on:click="clearAllFields" variant="secondary">
               <i class="fa fa-file-o"></i>&nbsp;New
@@ -13,18 +13,14 @@
             <b-button v-on:click="toggleSaveTemplateModal" variant="secondary">
               <i class="fa fa-floppy-o"></i>&nbsp;Save Template
             </b-button>
-            <b-button v-on:click="toggleAuditEntryModal" variant="warning" disabled="true">
+            <b-button v-on:click="toggleAuditEntryModal" variant="warning" :disabled="selectedPlateType != 'retail'">
               <i class="fa fa-clone"></i>&nbsp;Retail Customers
             </b-button>
-          </p>
-        </b-col>
-        <b-col sm="3">
-          <p class="toolbar">
             <b-button
               v-if="isSettingsAvailable"
               v-on:click="toggleTemplateSettingsModal"
               variant="secondary"
-              style="display: none;"
+              :visible="isSettingsAvailable"
             >
               <i class="fa fa-cog"></i>&nbsp;Settings
             </b-button>
@@ -60,6 +56,23 @@
           <b-card>
             <div slot="header">
               <strong>Registration</strong>
+              <div class="reg-header-options">
+                <b-form-group
+                  :horizontal="true">
+                  <b-form-radio-group
+                    id="tradeOrRetailOptions"
+                    name="plateTypeOption">
+                    <div class="custom-control custom-radio custom-control-inline">
+                      <input type="radio" id="optionTrade" name="plateTypeOption" class="custom-control-input" value="trade" v-model="selectedPlateType">
+                      <label class="custom-control-label" for="optionTrade">Trade</label>
+                    </div>
+                    <div class="custom-control custom-radio custom-control-inline">
+                      <input type="radio" id="optionRetail" name="plateTypeOption" class="custom-control-input" value="retail" v-model="selectedPlateType">
+                      <label class="custom-control-label" for="optionRetail">Retail</label>
+                    </div>
+                  </b-form-radio-group>
+                </b-form-group>
+              </div>
             </div>
             <div class="form-container">
               <b-row>
@@ -83,6 +96,7 @@
                       id="plateWIPInput"
                       value="0"
                       min="0"
+                      :disabled="selectedPlateType == 'retail'"
                     ></b-form-input>
                   </b-form-group>
                 </b-col>
@@ -262,7 +276,7 @@
                     <label for="isPrintBorder">Border</label>
                     <br />
                     <c-switch
-                      :disabled='true'
+                      :disabled='false'
                       class="mx-1"
                       id="isPrintBorder"
                       name="isPrintBorder"
@@ -280,7 +294,7 @@
                   <b-form-group>
                     <label for="plateBorderMargin">Margin</label>
                     <b-form-input
-                      :disabled='true'
+                      :disabled='false'
                       v-model="plateProperties.plateBorderMargin"
                       type="number"
                       id="plateBorderMargin"
@@ -292,7 +306,7 @@
                 <b-col sm="2">
                   <label for="plateBorderWidth">Width</label>
                   <b-form-input
-                    :disabled='true'
+                    :disabled='false'
                     v-model="plateProperties.plateBorderWidth"
                     type="number"
                     class="form-control"
@@ -562,7 +576,6 @@
                     <b-form-group>
                       <label for="contactTitle">
                         Title
-                        <span class="mandatory">*</span>
                       </label>
                       <b-form-select
                         id="contactTitle"
@@ -608,7 +621,6 @@
                     <b-form-group>
                       <label for="contactEmail">
                         Email
-                        <span class="mandatory">*</span>
                       </label>
                       <b-form-input v-model="newRetailContact.email" type="text" id="contactEmail"></b-form-input>
                     </b-form-group>
@@ -675,7 +687,10 @@
                 <b-row>
                   <b-col sm="4">
                     <b-form-group>
-                      <label for="addressPostCode">Post Code</label>
+                      <label for="addressPostCode">
+                        Post Code
+                        <span class="mandatory">*</span>
+                      </label>
                       <b-form-input
                         v-model="newRetailContact.address.post_code"
                         type="text"
@@ -705,7 +720,6 @@
                     <b-form-group>
                       <label for="addressCountry">
                         Country
-                        <span class="mandatory">*</span>
                       </label>
                       <b-form-select
                         id="addressCountry"
@@ -762,16 +776,14 @@
                   <b-col sm="4">
                     <b-form-group>
                       <label v-if="isIdentityUploadSelected">
-                        Upload Identity
-                        <span class="mandatory">*</span> (Or
+                        Upload Identity (Or
                         <span
                           class="upload-switch"
                           v-on:click="isIdentityUploadSelected = !isIdentityUploadSelected"
                         >Capture</span>)
                       </label>
                       <label v-if="!isIdentityUploadSelected">
-                        Capture Identity
-                        <span class="mandatory">*</span> (Or
+                        Capture Identity (Or
                         <span
                           class="upload-switch"
                           v-on:click="isIdentityUploadSelected = !isIdentityUploadSelected"
@@ -847,16 +859,14 @@
                   <b-col sm="4">
                     <b-form-group>
                       <label v-if="isEntitlementUploadSelected">
-                        Upload Entitlement
-                        <span class="mandatory">*</span> (Or
+                        Upload Entitlement (Or
                         <span
                           class="upload-switch"
                           v-on:click="isEntitlementUploadSelected = !isEntitlementUploadSelected"
                         >Capture</span>)
                       </label>
                       <label v-if="!isEntitlementUploadSelected">
-                        Capture Entitlement
-                        <span class="mandatory">*</span> (Or
+                        Capture Entitlement (Or
                         <span
                           class="upload-switch"
                           v-on:click="isEntitlementUploadSelected = !isEntitlementUploadSelected"
@@ -917,42 +927,16 @@
                   </b-col>
                 </b-row>
                 <b-row>
-                  <b-col sm="12">
-                    <b-form-group>
-                      <label for="isRetailCustomerPrintConfirmed">Retail customer print confirmed</label>
-                      <br />
-                      <c-switch
-                        class="mx-1"
-                        id="isRetailCustomerPrintConfirmed"
-                        name="isRetailCustomerPrintConfirmed"
-                        color="primary"
-                        v-model="plateProperties.isRetailCustomerPrintConfirmed"
-                        label
-                        value="1"
-                        uncheckedValue="0"
-                        data-on="yes"
-                        data-off="no"
-                      />
-                    </b-form-group>
-                  </b-col>
-                </b-row>
-                <b-row>
                   <b-col cols="12" sm="12" md="12">
                     <p>
                       <b-button
                         v-on:click="saveRetailCustomer"
                         variant="primary"
-                        :disabled="!allowRetailSave"
+                        :disabled="!retailCanBePrinted"
                       >
-                        <i class="fa fa-check"></i>&nbsp;Save Customer
+                        <i class="fa fa-check"></i>&nbsp;Submit Retail Information
                       </b-button>
                     </p>
-                    <b-alert v-if="saveRetailError" variant="danger" show>
-                      <strong>Error saving data. Please try again.</strong>
-                    </b-alert>
-                    <b-alert v-if="saveRetailInProgress" variant="info" show>
-                      <strong>Saving data. Please wait...</strong>
-                    </b-alert>
                   </b-col>
                 </b-row>
                 <hr />
@@ -1233,7 +1217,7 @@
               </div>
               <div class="form-container">
                 <b-row>
-                  <b-col sm="6">
+                  <b-col sm="4">
                     <b-form-group>
                       <label for="platePrinterName">Plate Printer</label>
                       <b-form-select
@@ -1244,7 +1228,18 @@
                       ></b-form-select>
                     </b-form-group>
                   </b-col>
-                  <b-col sm="6">
+                  <b-col sm="4">
+                    <b-form-group>
+                      <label for="platePrinterSecondName">Second Plate Printer</label>
+                      <b-form-select
+                        id="platePrinterSecondName"
+                        v-model="platePrinterSecondName"
+                        :plain="true"
+                        :options="printers"
+                      ></b-form-select>
+                    </b-form-group>
+                  </b-col>
+                  <b-col sm="4">
                     <b-form-group>
                       <label for="barcodePrinterName">Barcode Printer</label>
                       <b-form-select
@@ -1583,9 +1578,11 @@ export default {
   },
   data: function () {
     return {
+      testCount: 0,
       isFromTC: false,
       barcodePrinterName: 'Citizen CL-E321',
       platePrinterName: 'TSC TTP-247',
+      platePrinterSecondName: 'None',
       supplierId: 0,
       auditTabIndex: [0, 0],
       auditTabs: [
@@ -1796,7 +1793,8 @@ export default {
       currentPlateReprint: false,
       activeStatePrintPlateModal: false,
       printJobRunning: false,
-      userObj: {}
+      userObj: {},
+      selectedPlateType: 'trade'
     }
   },
   watch: {
@@ -2005,6 +2003,7 @@ export default {
 
     // get the printer list
     const printerList = getPrinterList();
+    this.$data.printers.push({value: 'None', text: 'None'});
     printerList.forEach((printer) => {
       this.$data.printers.push({value: printer.name, text: printer.name});
     });
@@ -2059,32 +2058,64 @@ export default {
     hasTemplateBeenLoaded: function() {
       return this.$data.currentTemplateId > 0;
     },
+    retailCanBePrinted: function() {
+      let returnVal = true;
+      if (this.$data.newRetailContact.first_name.length < 1) {
+        returnVal = false;
+      }
+      if (this.$data.newRetailContact.last_name.length < 1) {
+        returnVal = false;
+      }
+      if (this.$data.newRetailContact.address.property_number.length < 1) {
+        returnVal = false;
+      }
+      if (this.$data.newRetailContact.address.address1.length < 1) {
+        returnVal = false;
+      }
+      if (this.$data.newRetailContact.address.town.length < 1) {
+        returnVal = false;
+      }
+      if (this.$data.newRetailContact.address.post_code.length < 1) {
+        returnVal = false;
+      }
+      if (this.$data.newRetailContact.address.county_id < 1) {
+        returnVal = false;
+      }
+
+      return returnVal;
+    },
     canPlateBePrinted: function() {
       let returnVal = false;
       if (this.$data.printJobRunning) {
         returnVal = false;
       }
-      else {
+
+      if (this.$data.selectedPlateType == 'trade') {
         if (this.$data.plateProperties.plateWIPInput.length > 0) {
           returnVal = true;
         }
-        else {
-          if (this.$data.plateProperties.isRetailCustomerPrintConfirmed == 1) {
-            returnVal = true;
-          }
-          else {
-            returnVal = false;
-          }
-        }
+      }
+      else {
+        returnVal = this.retailCanBePrinted;
       }
       return returnVal;
     }
   },
   methods: {
+    getHTTPHeaders () {
+      let userObj = JSON.parse(localStorage.getItem('user'));
+      let headerConfig = {
+        headers: {
+          'Content-Type': 'application/json;charset=UTF-8',
+          'Authorization': userObj.token,
+        }
+      }
+      return headerConfig;
+    },
     toggleEntitlementImageCaptureModal() {
       this.$data.activeStateEntitlementImageCaptureModal = !this.$data.activeStateEntitlementImageCaptureModal;
       if (this.$data.activeStateEntitlementImageCaptureModal) {
-        this.$data.capturesEntitlement.length = 0;
+        this.$data.capturesEntitlement = [{'id': '0', 'image': ''}];
         this.prepEntitlementVideo();
       }
       else {
@@ -2097,7 +2128,7 @@ export default {
     toggleIdentityImageCaptureModal() {
       this.$data.activeStateIdentityImageCaptureModal = !this.$data.activeStateIdentityImageCaptureModal;
       if (this.$data.activeStateIdentityImageCaptureModal) {
-        this.$data.capturesIdentity.length = 0;
+        this.$data.capturesIdentity = [{'id': '0', 'image': ''}];
         this.prepIdentityVideo();
       }
       else {
@@ -2108,25 +2139,25 @@ export default {
       }
     },
     async prepEntitlementVideo() {
-        this.$data.mediaStream = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
-        this.$refs.videoEntitlement.srcObject = this.$data.mediaStream;
+      this.$data.capturesEntitlement = [{'id': '0', 'image': ''}];
+      this.$data.mediaStream = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
+      this.$refs.videoEntitlement.srcObject = this.$data.mediaStream;
     },
     async prepIdentityVideo() {
-        this.$data.mediaStream = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
-        this.$refs.videoIdentity.srcObject = this.$data.mediaStream;
+      this.$data.capturesIdentity = [{'id': '0', 'image': ''}];
+      this.$data.mediaStream = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
+      this.$refs.videoIdentity.srcObject = this.$data.mediaStream;
     },
     captureEntitlementImage() {
         // this.canvas = this.$refs.canvas;
         var context = this.$refs.canvasEntitlement.getContext("2d").drawImage(this.$refs.videoEntitlement, 0, 0, 760, 600);
-        this.$data.capturesEntitlement.length = 0;
-        this.$data.capturesEntitlement.push({'id': new Date().getTime(), 'image': this.$refs.canvasEntitlement.toDataURL("image/webp")});
+        this.$data.capturesEntitlement = [{'id': new Date().getTime(), 'image': this.$refs.canvasEntitlement.toDataURL("image/webp")}];
         this.$data.isEntitlementCaptureComplete = true;
         this.toggleEntitlementImageCaptureModal();
     },
     captureIdentityImage() {
         // this.canvas = this.$refs.canvas;
         var context = this.$refs.canvasIdentity.getContext("2d").drawImage(this.$refs.videoIdentity, 0, 0, 760, 600);
-        this.$data.capturesIdentity.length = 0;
         this.$data.capturesIdentity.push({'id': new Date().getTime(), 'image': this.$refs.canvasIdentity.toDataURL("image/webp")});
         this.$data.isIdentityCaptureComplete = true;
         this.toggleIdentityImageCaptureModal();
@@ -2237,10 +2268,25 @@ export default {
     closePrintConfirmModalAndPrint() {
       this.$data.activeStatePrintPlateModal = false;
       this.actualPrintPlate();
+      
+      /*
+      const tempPlates = ['T11T PLT', 'T22T PLT', 'T33T PLT'];
+      tempPlates.forEach((plate, i) => {
+        console.log(plate + " after " + i.toString());
+        window.setTimeout(() => {
+          console.log(i.toString());
+          this.actualPrintPlate();
+        }, 3000 * i);
+      });
+      */   
     },
     actualPrintPlate() {
 
       this.$data.printJobRunning = true;
+
+      // first of all, if we're printing a retail customer plate
+      // then we need to save the customer details
+      let headersObj = this.getHTTPHeaders();
 
       const content = {
         plateText: this.$data.plateProperties.plateTextInput,
@@ -2265,6 +2311,94 @@ export default {
         plateWidth: this.$data.platePrintStyleObject.widthActual,
         plateHeight: this.$data.platePrintStyleObject.heightActual
       };
+
+      if (this.$data.selectedPlateType == 'retail') {
+
+        let dataPostObject = {
+          customer: {
+            group: this.$data.newRetailContact.group_id,
+            branch: this.$data.newRetailContact.branch_id,
+            site: this.$data.newRetailContact.site_id,
+            category: this.$data.newRetailContact.category_id,
+            type: this.$data.newRetailContact.type_id,
+            proofId: this.$data.newRetailContact.proof_of_id,
+            proofIdRef: this.$data.newRetailContact.proof_of_id_ref,
+            proofIdImg: this.$data.newRetailContact.proof_of_id_doc,
+            proofIdTxt: this.$data.newRetailContact.identity_description,
+            proofEnt: this.$data.newRetailContact.proof_of_entitlement,
+            proofEntRef: this.$data.newRetailContact.proof_of_entitlement_ref,
+            proofEntImg: this.$data.newRetailContact.proof_of_entitlement_doc,
+            proofEntTxt: this.$data.newRetailContact.entitlementDescription
+          },
+          address: {
+            default: this.$data.newRetailContact.address.is_default_delivery_address,
+            property: this.$data.newRetailContact.address.property_number,
+            address1: this.$data.newRetailContact.address.address1,
+            address2: this.$data.newRetailContact.address.address2,
+            address3: this.$data.newRetailContact.address.address3,
+            address4: this.$data.newRetailContact.address.address4,
+            street: this.$data.newRetailContact.address.street,
+            town: this.$data.newRetailContact.address.town,
+            postcode: this.$data.newRetailContact.address.post_code,
+            county: this.$data.newRetailContact.address.county_id,
+            country: this.$data.newRetailContact.address.country_id,
+            company: this.$data.newRetailContact.address.company_id,
+            group: this.$data.newRetailContact.address.group_id,
+            branch: this.$data.newRetailContact.address.branch_id,
+            site: this.$data.newRetailContact.address.site_id,
+            telephone: this.$data.newRetailContact.address.telephone_number,
+            invoiceAddress: this.$data.newRetailContact.address.is_invoice_address,
+            addressCategory: this.$data.newRetailContact.address.address_category_id,
+            addressType: this.$data.newRetailContact.address.address_type_id
+          },
+          contact: {
+            first: this.$data.newRetailContact.first_name,
+            last: this.$data.newRetailContact.last_name,
+            title: this.$data.newRetailContact.title_id,
+            phone: this.$data.newRetailContact.phone_number,
+            mobile: this.$data.newRetailContact.mobile_number,
+            email: this.$data.newRetailContact.email,
+            company: this.$data.newRetailContact.company_name,
+            contactType: this.$data.newRetailContact.contact_type_id,
+            contactCategory: this.$data.newRetailContact.contact_category_id,
+            contactMethod: this.$data.newRetailContact.contact_method_id,
+            contactRole:this.$data.newRetailContact.contact_role_id,
+            optInMarketing: this.$data.newRetailContact.opt_in_marketing,
+            optInResearch: this.$data.newRetailContact.opt_in_research,
+            optInAnonymously: this.$data.newRetailContact.opt_in_anonymously,
+            group: this.$data.newRetailContact.group_id,
+            branch: this.$data.newRetailContact.branch_id,
+            site: this.$data.newRetailContact.site_id,
+            is_active: true
+          }
+        }
+        
+        // first, save the customer
+        this.$http.post('customers/bulk', {
+          customer: dataPostObject.customer,
+          address: dataPostObject.address,
+          contact: dataPostObject.contact
+        },
+        headersObj)
+        .then((response) => {
+          console.log(response.data);
+          if (response.data.success == true) {
+            this.$data.saveError = false;
+          }
+          else {
+            // data error
+            this.$data.saveError = true;
+          }
+        })
+        .catch ((err) => {
+          console.error(err);
+          this.$data.saveInProgress = false;
+          this.$data.saveError = true;
+        });
+      }
+
+      console.log(this.$data.selectedPlateType);
+
       ipcRenderer.send("printPlateHandler", content);
       //this.printBarcode();
 
@@ -2272,7 +2406,6 @@ export default {
 
       // save the printed plate for history and reporting
       this.$data.plateSaveInProgress = true;
-      let headersObj = getHTTPHeaders();
       // get the user info first
       let user = JSON.parse(localStorage.getItem('user'));
       let dataPostObject = {
@@ -2575,7 +2708,92 @@ export default {
       this.$data.activeStateFontSettingsModal = !this.$data.activeStateFontSettingsModal;
     },
     saveRetailCustomer() {
+      this.clearAlerts();
+      let headersObj = this.getHTTPHeaders();
 
+      let dataPostObject = {
+        customer: {
+          group: this.$data.newRetailContact.group_id,
+          branch: this.$data.newRetailContact.branch_id,
+          site: this.$data.newRetailContact.site_id,
+          category: this.$data.newRetailContact.category_id,
+          type: this.$data.newRetailContact.type_id,
+          proofId: this.$data.newRetailContact.proof_of_id,
+          proofIdRef: this.$data.newRetailContact.proof_of_id_ref,
+          proofIdImg: this.$data.newRetailContact.proof_of_id_doc,
+          proofIdTxt: this.$data.newRetailContact.identity_description,
+          proofEnt: this.$data.newRetailContact.proof_of_entitlement,
+          proofEntRef: this.$data.newRetailContact.proof_of_entitlement_ref,
+          proofEntImg: this.$data.newRetailContact.proof_of_entitlement_doc,
+          proofEntTxt: this.$data.newRetailContact.entitlementDescription
+        },
+        address: {
+          default: this.$data.newRetailContact.address.is_default_delivery_address,
+          property: this.$data.newRetailContact.address.property_number,
+          address1: this.$data.newRetailContact.address.address1,
+          address2: this.$data.newRetailContact.address.address2,
+          address3: this.$data.newRetailContact.address.address3,
+          address4: this.$data.newRetailContact.address.address4,
+          street: this.$data.newRetailContact.address.street,
+          town: this.$data.newRetailContact.address.town,
+          postcode: this.$data.newRetailContact.address.post_code,
+          county: this.$data.newRetailContact.address.county_id,
+          country: this.$data.newRetailContact.address.country_id,
+          company: this.$data.newRetailContact.address.company_id,
+          group: this.$data.newRetailContact.address.group_id,
+          branch: this.$data.newRetailContact.address.branch_id,
+          site: this.$data.newRetailContact.address.site_id,
+          telephone: this.$data.newRetailContact.address.telephone_number,
+          invoiceAddress: this.$data.newRetailContact.address.is_invoice_address,
+          addressCategory: this.$data.newRetailContact.address.address_category_id,
+          addressType: this.$data.newRetailContact.address.address_type_id
+        },
+        contact: {
+          first: this.$data.newRetailContact.first_name,
+          last: this.$data.newRetailContact.last_name,
+          title: this.$data.newRetailContact.title_id,
+          phone: this.$data.newRetailContact.phone_number,
+          mobile: this.$data.newRetailContact.mobile_number,
+          email: this.$data.newRetailContact.email,
+          company: this.$data.newRetailContact.company_name,
+          contactType: this.$data.newRetailContact.contact_type_id,
+          contactCategory: this.$data.newRetailContact.contact_category_id,
+          contactMethod: this.$data.newRetailContact.contact_method_id,
+          contactRole:this.$data.newRetailContact.contact_role_id,
+          optInMarketing: this.$data.newRetailContact.opt_in_marketing,
+          optInResearch: this.$data.newRetailContact.opt_in_research,
+          optInAnonymously: this.$data.newRetailContact.opt_in_anonymously,
+          group: this.$data.newRetailContact.group_id,
+          branch: this.$data.newRetailContact.branch_id,
+          site: this.$data.newRetailContact.site_id,
+          is_active: true
+        }
+      }
+      
+      // first, save the customer
+      this.$http.post('customers/bulk', {
+        customer: dataPostObject.customer,
+        address: dataPostObject.address,
+        contact: dataPostObject.contact
+      },
+      headersObj)
+      .then((response) => {
+        console.log(response.data);
+        if (response.data.success == true) {
+          this.$data.saveInProgress = false;
+          this.$data.saveError = false;
+        }
+        else {
+          // data error
+          this.$data.saveInProgress = false;
+          this.$data.saveError = true;
+        }
+      })
+      .catch ((err) => {
+        console.error(err);
+        this.$data.saveInProgress = false;
+        this.$data.saveError = true;
+      });
     },
     loadTradeCustomer() {
       getSuppliers(this.$http)
@@ -2734,4 +2952,16 @@ span.upload-switch {
 .image-upload-hidden {
   display: none;
 }
+div.reg-header-options {
+  float: right;
+}
+div.reg-header-options fieldset {
+  display: inline;
+}
+div.reg-header-options fieldset legend {
+  display: none;
+} 
+div.reg-header-options fieldset.form-group {
+  margin-bottom: 0;
+} 
 </style>
