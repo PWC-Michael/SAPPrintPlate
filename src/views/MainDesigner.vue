@@ -1031,6 +1031,7 @@
     </b-modal>
     <b-modal
       title="Template Settings"
+      size="lg"
       class="modal-warning"
       v-model="activeStateTemplateSettingsModal"
       hide-footer
