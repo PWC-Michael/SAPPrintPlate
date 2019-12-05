@@ -1,6 +1,6 @@
 {
   "name": "sap-plate-printing",
-  "version": "0.0.6",
+  "version": "0.0.34",
   "description": "The number plate printing admin web app",
   "author": "Planet Wide City",
   "scripts": {
@@ -16,53 +16,65 @@
   },
   "main": "background.js",
   "dependencies": {
-    "@coreui/coreui": "^2.1.9",
+    "@coreui/coreui": "^2.1.16",
     "@coreui/coreui-plugin-chartjs-custom-tooltips": "^1.2.0",
     "@coreui/icons": "0.3.0",
     "@coreui/vue": "^2.1.2",
-    "aws-amplify": "^1.1.36",
+    "aws-amplify": "^1.2.4",
     "axios": "^0.19.0",
     "bootstrap": "^4.3.1",
     "bootstrap-vue": "2.0.0-rc.28",
-    "chart.js": "^2.8.0",
-    "core-js": "^2.6.5",
+    "chart.js": "^2.9.3",
+    "core-js": "^2.6.10",
     "css-vars-ponyfill": "^1.17.2",
-    "datatables.net": "^1.10.19",
-    "electron-log": "^3.0.8",
-    "flag-icon-css": "^3.3.0",
+    "electron-log": "^3.0.9",
+    "electron-updater": "^4.2.0",
+    "flag-icon-css": "^3.4.5",
     "font-awesome": "^4.7.0",
     "perfect-scrollbar": "^1.4.0",
     "simple-line-icons": "^2.4.1",
     "vue": "^2.6.10",
     "vue-barcode": "^1.2.0",
     "vue-base64-file-upload": "^1.0.4",
-    "vue-chartjs": "^3.4.2",
+    "vue-chartjs": "^3.5.0",
     "vue-perfect-scrollbar": "^0.1.0",
-    "vue-router": "^3.0.2",
+    "vue-router": "^3.1.3",
     "vuejs-datatable": "^1.7.0"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^3.5.5",
-    "@vue/cli-plugin-e2e-nightwatch": "^3.5.1",
-    "@vue/cli-plugin-eslint": "^3.5.1",
-    "@vue/cli-plugin-unit-jest": "^3.5.3",
-    "@vue/cli-service": "^3.5.3",
+    "@vue/cli-plugin-babel": "^3.12.1",
+    "@vue/cli-plugin-e2e-nightwatch": "^3.12.1",
+    "@vue/cli-plugin-eslint": "^3.12.1",
+    "@vue/cli-plugin-unit-jest": "^3.12.1",
+    "@vue/cli-service": "^3.12.1",
     "@vue/test-utils": "^1.0.0-beta.29",
     "babel-core": "^7.0.0-bridge.0",
     "babel-jest": "^23.6.0",
-    "datatables.net": "^1.10.19",
-    "electron": "^5.0.0",
+    "datatables.net": "^1.10.20",
+    "electron": "^7.1.2",
     "growl": "^1.10.5",
-    "https-proxy-agent": "^2.2.1",
-    "node-sass": "^4.11.0",
-    "sass-loader": "^7.1.0",
-    "vue-cli-plugin-electron-builder": "^1.4.0",
+    "https-proxy-agent": "^2.2.4",
+    "node-sass": "^4.13.0",
+    "sass-loader": "^7.3.1",
+    "vue-cli-plugin-electron-builder": "^1.4.2",
     "vue-template-compiler": "^2.6.10"
   },
   "browserslist": [
     "> 1%",
     "last 2 versions",
     "not ie <= 9"
+  ],
+  "extraFiles": [
+    {
+      "from": "./extras",
+      "to": "./extras"
+    }
+  ],
+  "extraResources": [
+    {
+      "from": "./extras",
+      "to": "./extras"
+    }
   ],
   "copyright": "Copyright Sandhurst Autoprint",
   "engines": {

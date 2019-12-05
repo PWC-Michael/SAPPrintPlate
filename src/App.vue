@@ -36,7 +36,10 @@ export default {
     },
     countDown() {
       clearTimeout(this.$data.interval);
-      this.$router.push('/pages/login');
+      console.log(this.$router.history);
+      if (this.$router.history.current.name != 'Login') {
+        this.$router.push('/pages/login');
+      }
       this.resetTimer();
     }
   }

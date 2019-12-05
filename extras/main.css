@@ -1,0 +1,277 @@
+@font-face {
+    font-family: 'Charles';
+    src: url('assets/fonts/SAPUK.TTF')  format('truetype');
+}
+
+/*** overrides/extends ***/
+div.custom-switch {
+    /*justify-content: center;*/
+    display: flex;
+    /*height: 100%;
+    align-items: center;*/
+}
+
+body {
+    height: 100%;
+    width: 100%;
+}
+img.logo {
+    max-height: 50px;
+    margin: 10px;
+}
+div.logo-container {
+    border-bottom: 1px solid #ced4da;
+    background-color: #e9ecef;
+    min-width: 100%;
+}
+div.logo-container div.align-right {
+    text-align: right;
+}
+div.logo-container div.align-right h5 {
+    margin-top: 23px;
+}
+div.section-title {
+    width: 100%;
+    border-bottom: #ccc solid 1px;
+    text-align: center;
+    margin: 20px 0;
+    height: 0;
+}
+div.section-title span {
+    position: relative;
+    top: -13px;
+    padding: 0 15px;
+    background-color: #fff;
+    display: inline-block;
+    font-weight: bold;
+}
+div#platePrintAreaOuter {
+    border-radius: 30px;
+    width: 520mm;
+    height: 111mm;
+    display: inline-block;
+    background-color: rgb(247, 209, 74);
+    transform-origin: top left;
+    text-align: center;
+    position: fixed;
+    overflow: visible;
+}
+
+div#platePrintArea {
+    border-radius: 30px;
+    width: 100%;
+    height: 100%;
+}
+
+div#marque {
+    float: left;
+    width: 45mm;
+    text-align: center;
+    padding: 4mm;
+    background-color: blue;
+    border-top-left-radius: 30px;
+    border-bottom-left-radius: 30px;
+    height: 111mm;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: -1;
+    display: none;
+}
+
+div#marque img {
+    float: left;
+    width: 100%;
+    display: block;
+    padding-top: 10mm;
+}
+
+div#marque span#marque-slogan {
+    display: inline-block;
+    position: inherit;
+    text-transform: uppercase;
+    font-family: 'Charles';
+    font-size: 25mm;
+    color: rgb(247, 209, 74);
+    position: relative;
+    padding-top: 8mm;
+}
+
+div#platePrintArea div#plateRender {
+    font-size: 98mm;
+    display: inline-block;
+    line-height: 1;
+    text-transform: uppercase;
+    font-family: 'Charles';
+}
+div#platePrintArea div.slogan {
+    line-height: 1;
+    font-size: 7mm;
+    z-index: 1000;
+    background-color: rgb(247, 209, 74);
+}
+
+div#platePrintArea div#sloganMessage {
+    position: absolute;
+    left: 0;
+    right: 0;
+    width: max-content;
+    margin: auto;
+    bottom: 3mm;
+    padding: 2mm;
+}
+
+div#platePrintArea div#bsau {
+    position: absolute;
+    right: 11mm;
+    width: max-content;
+    bottom: 1mm;
+    padding-left: 2mm;
+    padding-right: 2mm;
+    font-size: 5mm
+}
+
+div.top-input-section {
+    width: 100%;
+    padding-bottom: 1em;
+}
+
+div.output-section {
+    width: 100%;
+}
+
+.mirror-text {
+    transform: scale(-1, 1);
+}
+
+input#plateTextInput {
+    text-transform: uppercase;
+}
+
+section.print-area {
+    display: none;
+}
+
+/*********************************
+Printer Window
+*********************************/
+div#platePrintArea-printer {
+    width: 520mm;
+    height:111mm;
+    /*border: solid 6mm #000;
+    border-radius: 10px;*/
+    display: inline-block;
+    text-align: center;
+}
+div#platePrintArea-printer.mirror-text {
+    text-align: right;
+}
+div#platePrintArea-printer div.reg-letters {
+    font-size: 98mm;
+    margin: 0;
+    /*padding: 25px;*/
+    text-transform: uppercase;
+    /*margin-top: -12mm;*/
+    text-align: center;
+    font-family: 'Charles';
+    width: 100%;
+}
+
+body.printer {
+    padding: 0;
+    margin: 0;
+    display: contents;
+    height: 111mm;
+    width: 520mm;
+}
+
+body.printer div#marque {
+    background-color: transparent;
+}
+
+span#actual-letters {
+    line-height: 92mm;
+    height: 92mm;
+    margin-top: -11mm;
+}
+
+/*********************************
+Barcode Printer Window
+*********************************/
+div#barcodePrintArea-printer {
+    width: 40mm;
+    /*border: solid 6mm #000;
+    border-radius: 10px;*/
+    display: inline-block;
+    text-align: center;
+}
+
+body.barcode-printer {
+    padding: 0;
+    margin: 0;
+    display: contents;
+    height: 15mm;
+}
+
+
+@media print
+{
+    body {
+        margin: 0;
+    }
+
+    @page {
+        overflow: hidden;
+    }
+    @page: top {
+        margin: 0;
+    }
+}
+
+@page {
+    width: 520mm;
+    height: 111mm;
+    size: landscape;
+    orientation: landscape;
+}
+
+/*
+    body.printer {
+        padding: 0;
+        margin:0;
+        height: 111mm;
+    }
+    html, body {
+        overflow: hidden;
+    }
+    div#platePrintArea-printer {
+        width: 522mm;
+        display: inline-block;
+        text-align: center;
+    }
+    div#platePrintArea-printer div.reg-letters {
+        font-size: 100mm;
+        margin: 0;
+        padding: 25px;
+        text-transform: uppercase;
+        margin-top: -12mm;
+        font-family: 'Charles';
+    }
+
+    div#platePrintArea-printer div#sloganMessage {
+        position: absolute;
+        left: 0;
+        right: 0;
+        width: max-content;
+        margin: auto;
+        bottom: 1mm;
+        padding: 2mm;
+        font-size: 3mm;
+    }
+
+    .mirror-text {
+        transform: scale(-1, 1);
+        text-align: right;
+    }
+}
+*/

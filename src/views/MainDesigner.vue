@@ -38,7 +38,7 @@
           <p class="toolbar">
             <b-button v-on:click="printPlate" variant="success" :disabled="!canPlateBePrinted">
               <span v-if="!printJobRunning">
-                <i class="fa fa-print"></i>&nbsp;Print Plate
+                <i class="fa fa-print"></i>&nbsp;Print Plate 34
               </span>
               <span v-if="printJobRunning">
                 <i class="fa fa-spin fa-spinner"></i>&nbsp;Printing plate...
@@ -930,7 +930,7 @@
                   <b-col cols="12" sm="12" md="12">
                     <p>
                       <b-button
-                        v-on:click="saveRetailCustomer"
+                        v-on:click="toggleAuditEntryModal"
                         variant="primary"
                         :disabled="!retailCanBePrinted"
                       >
@@ -1693,8 +1693,8 @@ export default {
           address_category_id: 0,
           address_type_id: 0,
           telephone_number: "",
-          is_invoice_address: false,
-          is_default_delivery_address: false,
+          is_invoice_address: 0,
+          is_default_delivery_address: 1,
           is_active: true
         },
       },
@@ -2283,6 +2283,9 @@ export default {
     },
     actualPrintPlate() {
 
+      let user = JSON.parse(localStorage.getItem('user'));
+      const isRetail = this.$data.selectedPlateType == 'retail';
+      let newRetailCustomerId = 0;
       this.$data.printJobRunning = true;
 
       // first of all, if we're printing a retail customer plate
@@ -2297,6 +2300,7 @@ export default {
         sloganMessageOffset: this.$data.plateProperties.plateMessageOffsetInput,
         sloganMessageFontSize: this.$data.plateProperties.plateMessageFontSizeInput,
         postCode: this.$data.plateProperties.platePostCodeInput,
+        postCodePosition: this.$data.plateProperties.platePostCodePosition,
         postCodeRaise: this.$data.plateProperties.platePostCodeRaiseInput,
         postCodeOffset: this.$data.plateProperties.platePostCodeOffsetInput,
         postCodeFontSize: this.$data.plateProperties.platePostCodeFontSizeInput,
@@ -2308,20 +2312,86 @@ export default {
         printBorder: this.$data.plateProperties.isPrintBorder,
         printMarque: this.$data.plateProperties.isPrintMarque,
         printBorderMargin: this.$data.plateProperties.plateBorderMargin,
+        printBorderColour: this.$data.plateProperties.plateBorderColour,
         printBorderWidth: this.$data.plateProperties.plateBorderWidth,
         plateWidth: this.$data.platePrintStyleObject.widthActual,
-        plateHeight: this.$data.platePrintStyleObject.heightActual
+        plateHeight: this.$data.platePrintStyleObject.heightActual,
+        plateTemplate: this.$data.currentTemplateId,
+        printerUsed: this.$data.platePrinterName,
+        WIPNumber: this.$data.plateProperties.plateWIPInput,
+        plateCode: this.$data.selectedPlateType
       };
 
-      if (this.$data.selectedPlateType == 'retail') {
+      let dataPostObjectPlate = {
+        plate: {
+          group_id: user.company_id,
+          branch_id: user.branch_id,
+          site_id: user.site_id,
+          registration_number: content.plateText,
+          raise_by_registration_number_in_mm: content.plateRaise,
+          plate_height: content.plateHeight,
+          plate_width: content.plateWidth,
+          slogan: content.sloganMessage,
+          slogan_font_size: content.sloganMessageFontSize,
+          is_border: content.printBorder,
+          border_colour: content.printBorderColour,
+          border_width: content.printBorderWidth,
+          border_margin: content.printBorderMargin,
+          template_id: content.plateTemplate,
+          postcode: content.postCode,
+          postcode_position: content.postCodePosition,
+          postcode_raise_by: content.postCodeRaise,
+          postcode_font_size: content.postCodeFontSize,
+          postcode_offset_by: content.postCodeOffset,
+          supplier_id: isRetail ? 0 : this.$data.supplierId,
+          printer_used: content.printerUsed,
+          supplier_wip_number: isRetail ? 0 : content.WIPNumber,
+          customer_id: 0,
+          plate_code: content.plateCode
+        }
+      }
 
-        let dataPostObject = {
+      // This is used twice so put it in a function
+      const printPlateAndSaveHistory = () => {
+        ipcRenderer.send("printPlateHandler", content);
+
+        this.$data.printJobRunning = false;
+
+        // save the printed plate for history and reporting
+        this.$data.plateSaveInProgress = true;
+
+        this.$http.post('plates', {
+          plate: dataPostObjectPlate.plate
+        },
+        headersObj)
+        .then((response) => {
+          console.log(response.data);
+          if (response.data.success == true) {
+            this.$data.plateSaveInProgress = false;
+              
+          }
+          else {
+              // data error
+              this.$data.plateSaveInProgress = false;
+          }
+        })
+        .catch ((err) => {
+          console.error(err);
+          this.$data.plateSaveInProgress = false;
+        });
+
+        this.$data.printJobRunning = false;
+      };
+
+      if (isRetail) {
+
+        let dataPostObjectRetail = {
           customer: {
-            group: this.$data.newRetailContact.group_id,
-            branch: this.$data.newRetailContact.branch_id,
-            site: this.$data.newRetailContact.site_id,
-            category: this.$data.newRetailContact.category_id,
-            type: this.$data.newRetailContact.type_id,
+            group: user.company_id,
+            branch: user.branch_id,
+            site: user.site_id,
+            category: 1,
+            type: 1,
             proofId: this.$data.newRetailContact.proof_of_id,
             proofIdRef: this.$data.newRetailContact.proof_of_id_ref,
             proofIdImg: this.$data.newRetailContact.proof_of_id_doc,
@@ -2376,15 +2446,17 @@ export default {
         
         // first, save the customer
         this.$http.post('customers/bulk', {
-          customer: dataPostObject.customer,
-          address: dataPostObject.address,
-          contact: dataPostObject.contact
+          customer: dataPostObjectRetail.customer,
+          address: dataPostObjectRetail.address,
+          contact: dataPostObjectRetail.contact
         },
         headersObj)
         .then((response) => {
           console.log(response.data);
           if (response.data.success == true) {
             this.$data.saveError = false;
+            dataPostObjectPlate.plate.customer_id = response.data.new_customer_id;
+            printPlateAndSaveHistory();
           }
           else {
             // data error
@@ -2397,68 +2469,11 @@ export default {
           this.$data.saveError = true;
         });
       }
+      else {
+        //this.printBarcode();
 
-      console.log(this.$data.selectedPlateType);
-
-      ipcRenderer.send("printPlateHandler", content);
-      //this.printBarcode();
-
-      this.$data.printJobRunning = false;
-
-      // save the printed plate for history and reporting
-      this.$data.plateSaveInProgress = true;
-      // get the user info first
-      let user = JSON.parse(localStorage.getItem('user'));
-      let dataPostObject = {
-        plate: {
-          group_id: user.company_id,
-          branch_id: user.branch_id,
-          site_id: user.site_id,
-          registration_number: this.$data.plateProperties.plateTextInput,
-          raise_by_registration_number_in_mm: this.$data.plateProperties.plateRaiseInput,
-          plate_height: this.$data.platePrintStyleObject.heightActual,
-          plate_width: this.$data.platePrintStyleObject.widthActual,
-          slogan: this.$data.plateProperties.plateMessageInput,
-          slogan_font_size: this.$data.plateProperties.plateMessageFontSizeInput,
-          is_border: this.$data.plateProperties.isPrintBorder,
-          border_colour: this.$data.plateProperties.plateBorderColour,
-          border_width: this.$data.plateProperties.plateBorderWidth,
-          border_margin: this.$data.plateProperties.plateBorderMargin,
-          template_id: this.$data.currentTemplateId,
-          postcode: this.$data.plateProperties.platePostCodeInput,
-          postcode_position: this.$data.plateProperties.platePostCodePosition,
-          postcode_raise_by: this.$data.plateProperties.platePostCodeRaiseInput,
-          postcode_font_size: this.$data.plateProperties.platePostCodeFontSizeInput,
-          postcode_offset_by: this.$data.plateProperties.platePostCodeOffsetInput,
-          supplier_id: this.$data.supplierId,
-          printer_used: this.$data.platePrinterName,
-          supplier_wip_number: this.$data.plateProperties.plateWIPInput,
-          plate_code: this.$data.plateProperties.plateCode
-        }
+        printPlateAndSaveHistory();
       }
-
-      this.$http.post('plates', {
-          plate: dataPostObject.plate
-        },
-        headersObj)
-        .then((response) => {
-          console.log(response.data);
-          if (response.data.success == true) {
-            this.$data.plateSaveInProgress = false;
-              
-          }
-          else {
-              // data error
-              this.$data.plateSaveInProgress = false;
-          }
-        })
-        .catch ((err) => {
-          console.error(err);
-          this.$data.plateSaveInProgress = false;
-          
-        });
-
-        this.$data.printJobRunning = false;
 
     },
     clearAllFields() {
@@ -2506,6 +2521,56 @@ export default {
       this.$data.plateProperties.plateArtworkSize = 7;
       this.$data.plateProperties.plateWIPInput = '';
       this.$data.plateProperties.isBarcodePrint = 0;
+
+      // clear the retail info
+      this.$data.newRetailContact.first_name = "";
+      this.$data.newRetailContact.last_name = "";
+      this.$data.newRetailContact.title_id = 0;
+      this.$data.newRetailContact.phone_number = "";
+      this.$data.newRetailContact.mobile_number = "";
+      this.$data.newRetailContact.email = "";
+      this.$data.newRetailContact.company_name = "";
+      this.$data.newRetailContact.contact_type_id = 0;
+      this.$data.newRetailContact.contact_category_id = 0;
+      this.$data.newRetailContact.contact_method_id = 0;
+      this.$data.newRetailContact.contact_role_id = 0;
+      this.$data.newRetailContact.opt_in_marketing = false;
+      this.$data.newRetailContact.opt_in_research = false;
+      this.$data.newRetailContact.opt_in_anonymously = false;
+      this.$data.newRetailContact.group_id = 0;
+      this.$data.newRetailContact.branch_id = 0;
+      this.$data.newRetailContact.site_id = 0;
+      this.$data.newRetailContact.is_active = false;
+      this.$data.newRetailContact.proof_of_id = 0;
+      this.$data.newRetailContact.proof_of_id_ref = '';
+      this.$data.newRetailContact.proof_of_id_doc = '';
+      this.$data.newRetailContact.identity_description = '';
+      this.$data.newRetailContact.proof_of_entitlement = 0;
+      this.$data.newRetailContact.proof_of_entitlement_ref = '';
+      this.$data.newRetailContact.proof_of_entitlement_doc = '';
+      this.$data.newRetailContact.entitlementDescription = '';
+      this.$data.newRetailContact.address.is_default = true;
+      this.$data.newRetailContact.address.property_number = "";
+      this.$data.newRetailContact.address.address1 = "";
+      this.$data.newRetailContact.address.address2 = "";
+      this.$data.newRetailContact.address.address3 = "";
+      this.$data.newRetailContact.address.address4 = "";
+      this.$data.newRetailContact.address.street = "";
+      this.$data.newRetailContact.address.town = "";
+      this.$data.newRetailContact.address.post_code = "";
+      this.$data.newRetailContact.address.delivery_notes = "";
+      this.$data.newRetailContact.address.county_id = 0;
+      this.$data.newRetailContact.address.country_id = 0;
+      this.$data.newRetailContact.address.company_id = 0;
+      this.$data.newRetailContact.address.group_id = 0;
+      this.$data.newRetailContact.address.branch_id = 0;
+      this.$data.newRetailContact.address.site_id = 0;
+      this.$data.newRetailContact.address.address_category_id = 0;
+      this.$data.newRetailContact.address.address_type_id = 0;
+      this.$data.newRetailContact.address.telephone_number = "";
+      this.$data.newRetailContact.address.is_invoice_address = 0;
+      this.$data.newRetailContact.address.is_default_delivery_address = 1;
+      this.$data.newRetailContact.address.is_active = true;
 
       // now re-populate the template
       console.log('User: ', this.$data.userObj);
@@ -2669,36 +2734,38 @@ export default {
     toggleAuditEntryModal() {
       this.$data.activeStateAuditModal = !this.$data.activeStateAuditModal;
       // now load the lookup data needed
-      this.loadTradeCustomer();
+      //this.loadTradeCustomer();
 
-      getContactTitles(this.$http)
-        .then((titlesList) => {
-            this.$data.contactTitles = titlesList;
-            this.$data.contactTitlesLoaded = true;
-            return getAddressCounties(this.$http);
-        })
-        .then((countiesList) => {
-            this.$data.counties = countiesList;
-            this.$data.countiesLoaded = true;
-            return getAddressCountries(this.$http);
-        })
-        .then((countriesList) => {
-            this.$data.countries = countriesList;
-            this.$data.countriesLoaded = true;
-            return getLegalDocumentsForSelect(this.$http, "PENT");
-        })
-        .then((legalDocsPENT) => {
-            this.$data.proofOfEntitlements = legalDocsPENT;
-            this.$data.proofOfEntitlementLoaded = true;
-            return getLegalDocumentsForSelect(this.$http, "PID");
-        })
-        .then((legalDocsPID) => {
-            this.$data.proofOfIds = legalDocsPID;
-            this.$data.proofOfIdsLoaded = true;
-        })
-        .catch ((err) => {
-            console.error(err);
-        });
+      if(this.$data.activeStateAuditModal) {
+        getContactTitles(this.$http)
+          .then((titlesList) => {
+              this.$data.contactTitles = titlesList;
+              this.$data.contactTitlesLoaded = true;
+              return getAddressCounties(this.$http);
+          })
+          .then((countiesList) => {
+              this.$data.counties = countiesList;
+              this.$data.countiesLoaded = true;
+              return getAddressCountries(this.$http);
+          })
+          .then((countriesList) => {
+              this.$data.countries = countriesList;
+              this.$data.countriesLoaded = true;
+              return getLegalDocumentsForSelect(this.$http, "PENT");
+          })
+          .then((legalDocsPENT) => {
+              this.$data.proofOfEntitlements = legalDocsPENT;
+              this.$data.proofOfEntitlementLoaded = true;
+              return getLegalDocumentsForSelect(this.$http, "PID");
+          })
+          .then((legalDocsPID) => {
+              this.$data.proofOfIds = legalDocsPID;
+              this.$data.proofOfIdsLoaded = true;
+          })
+          .catch ((err) => {
+              console.error(err);
+          });
+      }
     },
     togglePostCodeFontSettingsModal() {
       this.$data.fontModalType = 'postcode';
@@ -2707,94 +2774,6 @@ export default {
     toggleSloganFontSettingsModal() {
       this.$data.fontModalType = 'slogan';
       this.$data.activeStateFontSettingsModal = !this.$data.activeStateFontSettingsModal;
-    },
-    saveRetailCustomer() {
-      this.clearAlerts();
-      let headersObj = this.getHTTPHeaders();
-
-      let dataPostObject = {
-        customer: {
-          group: this.$data.newRetailContact.group_id,
-          branch: this.$data.newRetailContact.branch_id,
-          site: this.$data.newRetailContact.site_id,
-          category: this.$data.newRetailContact.category_id,
-          type: this.$data.newRetailContact.type_id,
-          proofId: this.$data.newRetailContact.proof_of_id,
-          proofIdRef: this.$data.newRetailContact.proof_of_id_ref,
-          proofIdImg: this.$data.newRetailContact.proof_of_id_doc,
-          proofIdTxt: this.$data.newRetailContact.identity_description,
-          proofEnt: this.$data.newRetailContact.proof_of_entitlement,
-          proofEntRef: this.$data.newRetailContact.proof_of_entitlement_ref,
-          proofEntImg: this.$data.newRetailContact.proof_of_entitlement_doc,
-          proofEntTxt: this.$data.newRetailContact.entitlementDescription
-        },
-        address: {
-          default: this.$data.newRetailContact.address.is_default_delivery_address,
-          property: this.$data.newRetailContact.address.property_number,
-          address1: this.$data.newRetailContact.address.address1,
-          address2: this.$data.newRetailContact.address.address2,
-          address3: this.$data.newRetailContact.address.address3,
-          address4: this.$data.newRetailContact.address.address4,
-          street: this.$data.newRetailContact.address.street,
-          town: this.$data.newRetailContact.address.town,
-          postcode: this.$data.newRetailContact.address.post_code,
-          county: this.$data.newRetailContact.address.county_id,
-          country: this.$data.newRetailContact.address.country_id,
-          company: this.$data.newRetailContact.address.company_id,
-          group: this.$data.newRetailContact.address.group_id,
-          branch: this.$data.newRetailContact.address.branch_id,
-          site: this.$data.newRetailContact.address.site_id,
-          telephone: this.$data.newRetailContact.address.telephone_number,
-          invoiceAddress: this.$data.newRetailContact.address.is_invoice_address,
-          addressCategory: this.$data.newRetailContact.address.address_category_id,
-          addressType: this.$data.newRetailContact.address.address_type_id
-        },
-        contact: {
-          first: this.$data.newRetailContact.first_name,
-          last: this.$data.newRetailContact.last_name,
-          title: this.$data.newRetailContact.title_id,
-          phone: this.$data.newRetailContact.phone_number,
-          mobile: this.$data.newRetailContact.mobile_number,
-          email: this.$data.newRetailContact.email,
-          company: this.$data.newRetailContact.company_name,
-          contactType: this.$data.newRetailContact.contact_type_id,
-          contactCategory: this.$data.newRetailContact.contact_category_id,
-          contactMethod: this.$data.newRetailContact.contact_method_id,
-          contactRole:this.$data.newRetailContact.contact_role_id,
-          optInMarketing: this.$data.newRetailContact.opt_in_marketing,
-          optInResearch: this.$data.newRetailContact.opt_in_research,
-          optInAnonymously: this.$data.newRetailContact.opt_in_anonymously,
-          group: this.$data.newRetailContact.group_id,
-          branch: this.$data.newRetailContact.branch_id,
-          site: this.$data.newRetailContact.site_id,
-          is_active: true
-        }
-      }
-      
-      // first, save the customer
-      this.$http.post('customers/bulk', {
-        customer: dataPostObject.customer,
-        address: dataPostObject.address,
-        contact: dataPostObject.contact
-      },
-      headersObj)
-      .then((response) => {
-        console.log(response.data);
-        if (response.data.success == true) {
-          this.$data.saveInProgress = false;
-          this.$data.saveError = false;
-        }
-        else {
-          // data error
-          this.$data.saveInProgress = false;
-          this.$data.saveError = true;
-        }
-      })
-      .catch ((err) => {
-        console.error(err);
-        this.$data.saveInProgress = false;
-        this.$data.saveError = true;
-      });
     },
     loadTradeCustomer() {
       getSuppliers(this.$http)

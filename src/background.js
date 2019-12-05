@@ -2,8 +2,7 @@
 
 import { app, protocol, BrowserWindow, ipcMain } from 'electron';
 import {
-  createProtocol,
-  installVueDevtools
+  createProtocol
 } from 'vue-cli-plugin-electron-builder/lib';
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const path = require('path');
@@ -14,13 +13,16 @@ const shell = electron.shell;
 const ch = require('os');
 const child = require('child_process');
 const log = require('electron-log');
+const {autoUpdater} = require("electron-updater");
 
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win;
 let printWindow;
+let printWindowYellow;
 let barcodePrintWindow;
+const UPDATE_FEED_URL = 'http://sap-printplate.0ea19165.cdn.memsites.com/';
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: { secure: true, standard: true } }])
@@ -32,12 +34,37 @@ log.transports.file.fileName = 'sap-log.log';
 let exePath = '';
 if (!isDevelopment) {
   exePath = app.getPath('exe');
-  exePath = exePath.substr(0, exePath.length - 22);
+  //exePath = exePath.substr(0, exePath.length - 22);
 }
 else {
   exePath = __dirname + "/";
 }
 log.info("Actual Path should be: ",  exePath);
+
+setTimeout(() => {
+  autoUpdater.checkForUpdates()
+}, 2000);
+
+autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName) => {
+  console.log('releaseNotes ' , releaseNotes);
+  console.log('releaseName ' , releaseName);
+  const dialogOpts = {
+    type: 'info',
+    buttons: ['Restart', 'Later'],
+    title: 'Application Update',
+    message: process.platform === 'win32' ? releaseNotes : releaseName,
+    detail: 'A new version has been downloaded. Restart the application to apply the updates.'
+  }
+
+  dialog.showMessageBox(dialogOpts, (response) => {
+    if (response === 0) autoUpdater.quitAndInstall()
+  })
+});
+
+autoUpdater.on('error', message => {
+  console.error('There was a problem updating the application')
+  console.error(message)
+});
 
 
 function createWindow () {
@@ -61,6 +88,7 @@ function createWindow () {
   win.on('closed', () => {
     win = null,
     printWindow = null,
+    printWindowYellow = null,
     barcodePrintWindow = null;
 
     app.quit();
@@ -80,6 +108,7 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On macOS it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
+  console.log("Activated!!");
   if (win === null) {
     createWindow()
   }
@@ -89,6 +118,7 @@ app.on('activate', () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
+  /*
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {
@@ -98,10 +128,16 @@ app.on('ready', async () => {
     }
 
   }
-  createWindow()
+  */
+  createWindow();
+
+  // now do the check for a new version
+  //autoUpdater.setFeedURL(UPDATE_FEED_URL);
+  //await autoUpdater.checkForUpdatesAndNotify();
 })
 
 // Exit cleanly on request from parent process in development mode.
+console.log(isDevelopment);
 if (isDevelopment) {
   if (process.platform === 'win32') {
     process.on('message', data => {
@@ -131,24 +167,81 @@ ipcMain.on("printRenderedHandler", function(event) {
   printWindow.webContents.send("printPlate",'print');
 });
 
+ipcMain.on("printRenderedHandlerYellow", function(event) {
+  printWindowYellow.webContents.send("printPlate",'print');
+});
+
 ipcMain.on("sendPlateToPrinterHandler", function(event) {
   console.log('Ok...print it!');
-  /*
-  dialog.showMessageBox({
-      type: "info",
-      title: "Plate has been printed",
-      message: "This is when the plate will be printed. This is for the demo purposes only."
-  });
-  */
   
-  //alert('This is when the plate will be printed. This is for the demo purposes only.');
+  let pdfSettings = function() {
+    var pageSize = {
+      height: 111000,
+      width: 520000
+    };
+    var option = {
+        landscape: true,
+        marginsType: 2,
+        printBackground: false,
+        printSelectionOnly: false,
+        pageSize: pageSize
+    };
+    return option;
+  }
+  
+  console.log('Ok...pdf it');
+  var pdfPath = path.join(exePath, Date.now().toString() + '.pdf');
+  var runPDFPath = path.join(exePath, 'SumatraPDF.exe');
+  console.log(pdfPath);
+  const pdfSettingsObj = pdfSettings();
+
+
   /*
   const printOptions = {
     printBackground: false,
-    silent: false
+    silent: false,
+
   };
   printWindow.webContents.print(printOptions);
+  console.log("Should have printed");
+
   */
+
+  try {
+    printWindow.webContents.printToPDF(pdfSettingsObj, function(err, data) {
+      console.log('Ok...');
+      console.log(data);
+      if (err) {
+        console.log(err);
+        return;
+      }
+  
+      try {
+        fs.writeFileSync(pdfPath, data);
+        setTimeout(function() {
+          //child.exec(runPDFPath +' -print-to "Citizen CL-S700 white" -print-settings "1, fit" ' + pdfPath, function() {
+          //child.exec(runPDFPath +' -print-to "TSC TTP-247 White" -print-settings "1, fit" ' + pdfPath, function() {
+          child.exec(runPDFPath +' -print-to "Godex HD830i" -print-settings "1, fit" ' + pdfPath, function() {
+            console.log("Should have printed");
+            //console.log(runPDFPath +' -print-to "TSC TTP-247 White" -print-settings "1,fit,monochrome" -print-dialog -exit-when-done ' + pdfPath);
+          }, function(e) {
+            console.log(e);
+          });
+        }, 1000);
+      }
+      catch(errord) {
+        console.log("Tried but: ", errord)
+      }
+    });
+  }
+  catch (printError) {
+    console.log("print but: ", printError)
+  }
+  
+});
+
+ipcMain.on("sendPlateToPrinterHandlerYellow", function(event) {
+  console.log('Ok yello...print it!');
 
   let pdfSettings = function() {
     var pageSize = {
@@ -166,15 +259,15 @@ ipcMain.on("sendPlateToPrinterHandler", function(event) {
   }
   
 
-  console.log('Ok...pdf it');
-  var pdfPath = path.join(exePath, 'print.pdf');
+  console.log('Ok yellow...pdf it');
+  var pdfPath = path.join(exePath, Date.now().toString() + '.pdf');
   var runPDFPath = path.join(exePath, 'SumatraPDF.exe');
   console.log(pdfPath);
   const pdfSettingsObj = pdfSettings();
 
   try {
-    printWindow.webContents.printToPDF(pdfSettingsObj, function(err, data) {
-      console.log('Ok...');
+    printWindowYellow.webContents.printToPDF(pdfSettingsObj, function(err, data) {
+      console.log('Ok...yellow');
       console.log(data);
       if (err) {
         console.log(err);
@@ -184,9 +277,11 @@ ipcMain.on("sendPlateToPrinterHandler", function(event) {
       try {
         fs.writeFileSync(pdfPath, data);
         setTimeout(function() {
-          child.exec(runPDFPath +' -print-to "TSC TTP-247" -print-settings "1, fit" ' + pdfPath, function() {
-            console.log("Should have printed");
-            console.log(runPDFPath +' -print-to "TSC TTP-247" -print-settings "1,fit,monochrome" -print-dialog -exit-when-done ' + pdfPath);
+          //child.exec(runPDFPath +' -print-to "TSC TTP-247 Yellow" -print-settings "1, fit" ' + pdfPath, function() {
+          //child.exec(runPDFPath +' -print-to "Citizen CL-S700 yellow" -print-settings "1, fit" ' + pdfPath, function() {
+          child.exec(runPDFPath +' -print-to "Godex HD830i" -print-settings "1, fit" ' + pdfPath, function() {
+            console.log("Should have printed yellow");
+            //console.log(runPDFPath +' -print-to "TSC TTP-247 Yellow" -print-settings "1,fit,monochrome" -print-dialog -exit-when-done ' + pdfPath);
           }, function(e) {
             console.log(e);
           });
@@ -204,25 +299,46 @@ ipcMain.on("sendPlateToPrinterHandler", function(event) {
 });
 
 ipcMain.on("printPlateHandler", function(event, content) {
+  
   printWindow = new BrowserWindow({
-    show: false,
+    show: true,
     webPreferences: {
       nodeIntegration: true
     }
   });
   
   printWindow.loadURL(url.format({
-      pathname: path.join(exePath, 'platePrint.html'),
+      pathname: path.join(exePath, 'platePrintDirect.html'),
       protocol: 'file:',
       slashes: true
   }));
-  
 
   printWindow.webContents.on('did-finish-load', function() {
     console.log("Sending this to print windows: ", content);
     printWindow.webContents.send("preparePrint", content);
   });
+
+
+  /*
+  ///////// Yellow plate //////////
+  printWindowYellow = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      nodeIntegration: true
+    }
+  });
+
+  printWindowYellow.loadURL(url.format({
+    pathname: path.join(exePath, 'platePrintYellow.html'),
+    protocol: 'file:',
+    slashes: true
+  }));
   
+  printWindowYellow.webContents.on('did-finish-load', function() {
+    console.log("Sending this to print windows: ", content);
+    printWindowYellow.webContents.send("preparePrint", content);
+  });
+  */
 });
 
 ///// Barcode printing
