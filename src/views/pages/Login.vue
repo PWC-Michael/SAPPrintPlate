@@ -6,8 +6,8 @@
           <img class="p-4" src="img/sap-logo.jpg" style="width: 100%;" alt="SAP Logo">
         </b-col>
       </b-row>
-      <b-row class="justify-content-center">
-        <b-col md="8">
+      <b-row class="justify-content-center" v-if="!showUsersList">
+        <b-col md="10">
           <b-card-group>
             <b-card no-body class="p-4">
               <b-card-body>
@@ -15,8 +15,15 @@
                   <h1>Login</h1>
                   <p class="text-muted">Sign In to your account</p>
                   <b-input-group class="mb-3">
-                    <b-input-group-prepend><b-input-group-text><i class="icon-user"></i></b-input-group-text></b-input-group-prepend>
+                    <b-input-group-prepend>
+                      <b-input-group-text>
+                        <i class="icon-user"></i>
+                      </b-input-group-text>
+                    </b-input-group-prepend>
                     <b-form-input v-model="username"  type="text" class="form-control" placeholder="Username" autocomplete="username email" required autofocus />
+                    <b-input-group-append v-if="hasExistingUserList">
+                      <b-button variant="secondary" @click="showUsersListClick"><i class="icon-options"></i></b-button>
+                    </b-input-group-append>
                   </b-input-group>
                   <b-input-group class="mb-4">
                     <b-input-group-prepend><b-input-group-text><i class="icon-lock"></i></b-input-group-text></b-input-group-prepend>
@@ -39,13 +46,50 @@
             <b-card no-body class="bg-SAP py-5 d-md-down-none" style="width:44%">
               <b-card-body class="text-center">
                 <div>
-                  <h2>No account?</h2>
-                  <p>Please speak to your system administrator to request an account and for access to this online application.</p>
-                  <b-button variant="primary" class="active mt-3">Register Now!</b-button>
+                  <h2>SAP Print Plate</h2>
+                  <p>
+                    Desktop Software by: <strong>Sandhurst Autoprint Ltd</strong>
+                  </p>
+                  <hr>
+                  <p>
+                    Telephone: <Strong>01252 749808</Strong><br>
+                    Email: <strong>sales@sandhurstautoprint.co.uk</strong>
+                  </p>
                 </div>
               </b-card-body>
             </b-card>
           </b-card-group>
+        </b-col>
+      </b-row>
+      <b-row class="justify-content-center" v-if="showUsersList">
+        <b-col md="10">
+          <b-card no-body class="p-4">
+            <b-card-body>
+              <b-form>
+                <h3>User Accounts</h3>
+                <p class="text-muted">Select your account to sign in with</p>
+                <b-row>
+                  <b-col cols="12">
+                    <div id="plate-list">
+                      <b-table
+                        id="userlist-table"
+                        class="datalist-table"
+                        selectable
+                        hover 
+                        bordered
+                        select-mode="single"                                            
+                        :items="usernameList" 
+                        :fields="tableFields"
+                        @row-clicked="userSelected"
+                        responsive="sm"
+                        >
+                      </b-table>
+                    </div>
+                  </b-col>
+                </b-row>
+              </b-form>
+            </b-card-body>
+          </b-card> 
         </b-col>
       </b-row>
     </div>
@@ -55,6 +99,7 @@
 <script>
 
 import { storeController } from '../../shared/store';
+const { ipcRenderer } = require('electron');
 
 export default {
   name: 'Login',
@@ -62,12 +107,26 @@ export default {
     return {
       username: "",
       password: "",
-      isLoggingIn: false
+      isLoggingIn: false,
+      usernameList: [],
+      showUsersList: false,
+      hasExistingUserList: false,
+      tableFields: [
+        {key: 'username', label: 'Name', sortable: true},
+        {key: 'email', label: 'Email', sortable: true},
+      ],
     }
+  },
+  mounted() {
+    ipcRenderer.on('populateUsernameList', (event, content) => {
+      this.$nextTick(() => this.populateUserDropdown(content));
+    });
   },
   created() {
     // clear any user info
     localStorage.removeItem('user');
+    ipcRenderer.send("getUsernameList");
+    console.log("list:" ,this.$data.usernameList);
   },
   methods : {
     login(e) {
@@ -96,6 +155,9 @@ export default {
             // store the user data in local storage
             localStorage.setItem('user', JSON.stringify(userObj));
             storeController.setUserAuthToken(response.data.token);
+            // store the email username/email address 
+            ipcRenderer.send("setUsernameInList", {fullName: userObj.firstName + " " + userObj.lastName, email: this.username});
+           
             this.$router.push('/');
             this.$data.isLoggingIn = false;
           })
@@ -104,6 +166,30 @@ export default {
             this.$data.isLoggingIn = false;
           })
       }
+    },
+    userSelected(item, index) {
+      // grab the user
+      let user = this.$data.usernameList.filter((userItem) => {
+        console.log(userItem);
+        return item.email == userItem.email;
+      })[0];
+
+      this.username = user.email;
+      console.log("selected user: ", this.username);
+
+      this.$data.showUsersList = false;
+
+    },
+    populateUserDropdown(data) {
+      if (data != null) {
+        this.$data.usernameList = data.map((item) => {
+          return {username: item.fullName, email: item.email}; 
+        });
+        this.$data.hasExistingUserList = true;
+      }
+    },
+    showUsersListClick() {
+      this.$data.showUsersList = true;
     }
   }
 }

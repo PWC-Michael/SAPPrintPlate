@@ -38,7 +38,7 @@
           <p class="toolbar">
             <b-button v-on:click="printPlate" variant="success" :disabled="!canPlateBePrinted">
               <span v-if="!printJobRunning">
-                <i class="fa fa-print"></i>&nbsp;Print Plate 34
+                <i class="fa fa-print"></i>&nbsp;Print Plate
               </span>
               <span v-if="printJobRunning">
                 <i class="fa fa-spin fa-spinner"></i>&nbsp;Printing plate...

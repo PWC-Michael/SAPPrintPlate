@@ -1,12 +1,13 @@
 {
   "name": "sap-plate-printing",
-  "version": "0.0.34",
+  "version": "0.1.1",
   "description": "The number plate printing admin web app",
   "author": "Planet Wide City",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
+    "electron:publish": "vue-cli-service electron:build -p always",
     "electron:build": "vue-cli-service electron:build",
     "electron:serve": "vue-cli-service electron:serve",
     "postinstall": "electron-builder install-app-deps",
@@ -28,6 +29,7 @@
     "core-js": "^2.6.10",
     "css-vars-ponyfill": "^1.17.2",
     "electron-log": "^3.0.9",
+    "electron-store": "^5.1.0",
     "electron-updater": "^4.2.0",
     "flag-icon-css": "^3.4.5",
     "font-awesome": "^4.7.0",

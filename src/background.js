@@ -1,9 +1,10 @@
 'use strict'
 
-import { app, protocol, BrowserWindow, ipcMain } from 'electron';
+import { app, protocol, BrowserWindow, ipcMain, dialog } from 'electron';
 import {
   createProtocol
 } from 'vue-cli-plugin-electron-builder/lib';
+import { CostExplorer } from 'aws-sdk/clients/all';
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const path = require('path');
 const url = require('url');
@@ -14,6 +15,7 @@ const ch = require('os');
 const child = require('child_process');
 const log = require('electron-log');
 const {autoUpdater} = require("electron-updater");
+const Store = require('electron-store');
 
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -22,7 +24,10 @@ let win;
 let printWindow;
 let printWindowYellow;
 let barcodePrintWindow;
+const fileStorage = new Store();
 const UPDATE_FEED_URL = 'http://sap-printplate.0ea19165.cdn.memsites.com/';
+
+// Github SAP token 4fc01b5dabdd57516ffeba7c409ff95923d00bc3
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: { secure: true, standard: true } }])
@@ -42,28 +47,52 @@ else {
 log.info("Actual Path should be: ",  exePath);
 
 setTimeout(() => {
+  autoUpdater.setFeedURL({ provider: 'github', owner: 'PWC-Michael', repo: 'SAPPrintPlate', token: '4fc01b5dabdd57516ffeba7c409ff95923d00bc3' })
   autoUpdater.checkForUpdates()
 }, 2000);
 
 autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName) => {
-  console.log('releaseNotes ' , releaseNotes);
-  console.log('releaseName ' , releaseName);
   const dialogOpts = {
     type: 'info',
-    buttons: ['Restart', 'Later'],
+    buttons: ['Okay'],
     title: 'Application Update',
-    message: process.platform === 'win32' ? releaseNotes : releaseName,
-    detail: 'A new version has been downloaded. Restart the application to apply the updates.'
+    message: 'There is a newer version of this software available',
+    detail: 'A new version has been downloaded. Please close and re-open the application to apply the updates.'
   }
 
   dialog.showMessageBox(dialogOpts, (response) => {
-    if (response === 0) autoUpdater.quitAndInstall()
+    if (response === 0) {
+      log.info("Application update has been acknowledged");
+    }
   })
 });
 
 autoUpdater.on('error', message => {
   console.error('There was a problem updating the application')
   console.error(message)
+});
+
+ipcMain.on("getUsernameList", function() {
+  var dataList = fileStorage.get('userDataList');
+  console.log(dataList);
+  win.webContents.send("populateUsernameList", dataList);
+});
+
+ipcMain.on("setUsernameInList", function(event, content) {
+  var dataList = fileStorage.get('userDataList');
+  if (dataList === undefined) {
+    dataList = [];
+  }
+  else {
+    var dataListCount = [];
+    dataListCount = dataList.filter((item) => {
+      return item.email = content.email; 
+    });
+    if (dataListCount.length < 1) {
+      dataList.push(content);
+      fileStorage.set('userDataList', dataList);
+    }
+  }
 });
 
 
